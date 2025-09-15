@@ -41,7 +41,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
-        video {
+        video, img#uploaded-image {
             width: 100%;
             height: auto;
             display: none;
@@ -69,7 +69,7 @@
             padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            box-sizing: border-box; /* Đảm bảo padding không làm tăng chiều rộng */
+            box-sizing: border-box;
         }
         
         /* Nút bấm */
@@ -94,6 +94,12 @@
         }
         #start-camera-btn:hover, #take-photo-btn:hover {
             background-color: #0056b3;
+        }
+        #upload-btn {
+            background-color: #f2a745;
+        }
+        #upload-btn:hover {
+            background-color: #da933a;
         }
         button[type="submit"] {
             background-color: #28a745;
@@ -146,7 +152,7 @@
                 justify-content: center;
             }
             .product-item {
-                width: calc(50% - 15px); /* 2 item/hàng */
+                width: calc(50% - 15px);
             }
         }
     </style>
@@ -161,6 +167,7 @@
     <div id="camera-container">
         <video id="webcam" autoplay playsinline></video>
         <canvas id="photo-canvas"></canvas>
+        <img id="uploaded-image" src="" alt="Ảnh đã tải lên" style="display: none;">
     </div>
 
     <form id="product-form">
@@ -173,6 +180,8 @@
         <div class="btn-group">
             <button type="button" id="start-camera-btn">Mở Camera</button>
             <button type="button" id="take-photo-btn" style="display: none;">Chụp Ảnh</button>
+            <button type="button" id="upload-btn">Tải ảnh lên</button>
+            <input type="file" id="file-input" accept="image/*" style="display: none;">
             <button type="submit" style="display: none;">Lưu</button>
         </div>
     </form>
@@ -184,15 +193,14 @@
         </div>
 
     <script>
-        // Thay đổi cấu hình Firebase dưới đây bằng thông tin của bạn
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};
 
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
@@ -200,8 +208,11 @@
 
         const webcamElement = document.getElementById('webcam');
         const canvasElement = document.getElementById('photo-canvas');
+        const uploadedImageElement = document.getElementById('uploaded-image');
         const startCameraButton = document.getElementById('start-camera-btn');
         const takePhotoButton = document.getElementById('take-photo-btn');
+        const uploadButton = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
         const productForm = document.getElementById('product-form');
         const productList = document.getElementById('product-list');
         const productNameInput = document.getElementById('product-name');
@@ -212,14 +223,18 @@
         let photoBlob = null;
         let photoTaken = false;
 
+        // Xử lý khi bấm nút "Mở Camera"
         startCameraButton.addEventListener('click', async () => {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); // Ưu tiên camera sau trên mobile
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 webcamElement.srcObject = stream;
                 webcamElement.style.display = 'block';
                 canvasElement.style.display = 'none';
+                uploadedImageElement.style.display = 'none';
+
                 startCameraButton.style.display = 'none';
                 takePhotoButton.style.display = 'inline-block';
+                uploadButton.style.display = 'none';
                 saveButton.style.display = 'none';
                 photoTaken = false;
             } catch (err) {
@@ -228,6 +243,7 @@
             }
         });
 
+        // Xử lý khi bấm nút "Chụp Ảnh"
         takePhotoButton.addEventListener('click', () => {
             canvasElement.width = webcamElement.videoWidth;
             canvasElement.height = webcamElement.videoHeight;
@@ -237,22 +253,50 @@
                 photoBlob = blob;
             });
 
-            // Dừng stream camera để tiết kiệm pin
-            stream.getTracks().forEach(track => track.stop());
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
 
             webcamElement.style.display = 'none';
             canvasElement.style.display = 'block';
             takePhotoButton.style.display = 'none';
             startCameraButton.style.display = 'inline-block';
+            uploadButton.style.display = 'inline-block';
             saveButton.style.display = 'inline-block';
             photoTaken = true;
         });
 
+        // Xử lý khi bấm nút "Tải ảnh lên"
+        uploadButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                photoBlob = file;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedImageElement.src = event.target.result;
+                    uploadedImageElement.style.display = 'block';
+                    webcamElement.style.display = 'none';
+                    canvasElement.style.display = 'none';
+
+                    startCameraButton.style.display = 'inline-block';
+                    takePhotoButton.style.display = 'none';
+                    saveButton.style.display = 'inline-block';
+                    photoTaken = true;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Xử lý khi bấm nút "Lưu"
         productForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             if (!photoTaken) {
-                alert("Vui lòng chụp ảnh sản phẩm trước khi lưu.");
+                alert("Vui lòng chụp ảnh hoặc tải ảnh lên sản phẩm trước khi lưu.");
                 return;
             }
             
@@ -267,9 +311,7 @@
             const uploadTask = storageRef.put(photoBlob);
 
             uploadTask.on('state_changed', 
-                (snapshot) => {
-                    // Cập nhật trạng thái tải lên nếu cần
-                }, 
+                (snapshot) => {}, 
                 (error) => {
                     console.error("Lỗi tải ảnh lên:", error);
                     alert("Lỗi khi tải ảnh lên. Vui lòng thử lại.");
@@ -288,7 +330,7 @@
                         productForm.reset();
                         loadProducts();
                         
-                        // Reset giao diện
+                        uploadedImageElement.style.display = 'none';
                         webcamElement.style.display = 'none';
                         canvasElement.style.display = 'none';
                         startCameraButton.style.display = 'inline-block';
@@ -302,6 +344,7 @@
             );
         });
 
+        // Tải và hiển thị danh sách thuốc từ Firestore
         const loadProducts = () => {
             db.collection("products").orderBy("createdAt", "desc").get().then((querySnapshot) => {
                 productList.innerHTML = "";
