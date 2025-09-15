@@ -41,12 +41,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
-        video, img#uploaded-image {
-            width: 100%;
-            height: auto;
-            display: none;
-        }
-        canvas {
+        video, img#uploaded-image, canvas {
             width: 100%;
             height: auto;
             display: none;
@@ -78,6 +73,7 @@
             justify-content: space-between;
             gap: 10px;
             margin-top: 15px;
+            flex-wrap: wrap; /* Cho phép xuống dòng trên màn hình nhỏ */
         }
         button {
             flex: 1;
@@ -88,6 +84,7 @@
             font-size: 16px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            white-space: nowrap;
         }
         #start-camera-btn, #take-photo-btn {
             background-color: var(--primary-color);
@@ -146,6 +143,9 @@
                 margin-left: auto;
                 margin-right: auto;
             }
+            .btn-group {
+                flex-wrap: nowrap;
+            }
             .product-list {
                 flex-direction: row;
                 flex-wrap: wrap;
@@ -167,7 +167,7 @@
     <div id="camera-container">
         <video id="webcam" autoplay playsinline></video>
         <canvas id="photo-canvas"></canvas>
-        <img id="uploaded-image" src="" alt="Ảnh đã tải lên" style="display: none;">
+        <img id="uploaded-image" src="" alt="Ảnh đã tải lên">
     </div>
 
     <form id="product-form">
@@ -193,15 +193,16 @@
         </div>
 
     <script>
+        // Cấu hình Firebase của bạn
         const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
-
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const storage = firebase.storage();
@@ -223,9 +224,18 @@
         let photoBlob = null;
         let photoTaken = false;
 
+        function stopCameraStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+
         // Xử lý khi bấm nút "Mở Camera"
         startCameraButton.addEventListener('click', async () => {
+            stopCameraStream(); // Dừng stream cũ nếu có
             try {
+                // Ưu tiên camera sau trên thiết bị di động
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 webcamElement.srcObject = stream;
                 webcamElement.style.display = 'block';
@@ -239,7 +249,7 @@
                 photoTaken = false;
             } catch (err) {
                 console.error("Lỗi khi truy cập camera: ", err);
-                alert("Không thể truy cập camera. Vui lòng cấp quyền.");
+                alert("Không thể truy cập camera. Vui lòng kiểm tra quyền và thử lại.");
             }
         });
 
@@ -252,13 +262,11 @@
             canvasElement.toBlob(blob => {
                 photoBlob = blob;
             });
-
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
+            stopCameraStream();
 
             webcamElement.style.display = 'none';
             canvasElement.style.display = 'block';
+            
             takePhotoButton.style.display = 'none';
             startCameraButton.style.display = 'inline-block';
             uploadButton.style.display = 'inline-block';
@@ -268,6 +276,7 @@
 
         // Xử lý khi bấm nút "Tải ảnh lên"
         uploadButton.addEventListener('click', () => {
+            stopCameraStream(); // Dừng camera nếu đang chạy
             fileInput.click();
         });
 
@@ -281,7 +290,7 @@
                     uploadedImageElement.style.display = 'block';
                     webcamElement.style.display = 'none';
                     canvasElement.style.display = 'none';
-
+                    
                     startCameraButton.style.display = 'inline-block';
                     takePhotoButton.style.display = 'none';
                     saveButton.style.display = 'inline-block';
@@ -335,6 +344,7 @@
                         canvasElement.style.display = 'none';
                         startCameraButton.style.display = 'inline-block';
                         takePhotoButton.style.display = 'none';
+                        uploadButton.style.display = 'inline-block';
                         saveButton.style.display = 'none';
                         saveButton.disabled = false;
                         saveButton.textContent = "Lưu";
@@ -365,7 +375,6 @@
         };
 
         window.addEventListener('load', loadProducts);
-
     </script>
 </body>
 </html>
