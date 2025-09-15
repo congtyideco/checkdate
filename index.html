@@ -3,465 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản Lý Thuốc</title>
+    <title>📷 Ứng dụng chụp & lưu ảnh (Nâng cao)</title>
     <style>
-        /* CSS Cơ bản & Mobile-First */
-        :root {
-            --primary-color: #007bff;
-            --secondary-color: #6c757d;
-            --bg-color: #f8f9fa;
-            --border-color: #dee2e6;
-            --card-bg: #ffffff;
-            --error-color: #dc3545;
-            --success-color: #28a745;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            margin: 0;
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
             padding: 20px;
-            background-color: var(--bg-color);
+            background: #f9f9f9;
+        }
+        h2, h3 {
             color: #333;
         }
-
-        h1, h2 {
-            text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-        }
-
-        /* Container cho Camera và Canvas */
-        #camera-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: auto;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            min-height: 250px;
-            background-color: #f0f0f0;
-            position: relative;
-        }
-        
-        #camera-container .placeholder {
-            text-align: center;
-            color: var(--secondary-color);
-            padding: 20px;
-        }
-        
-        video, img#uploaded-image, canvas {
-            width: 100%;
-            height: auto;
-            display: none;
-            border-radius: 8px;
-        }
-
-        /* Form nhập liệu */
-        form {
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-        form label, form input {
-            display: block;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        form input {
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        
-        /* Nút bấm */
-        .btn-group {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap; /* Cho phép xuống dòng trên màn hình nhỏ */
-        }
-        button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 50px;
-            color: white;
-            font-size: 16px;
+        #camera-btn {
+            font-size: 48px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            white-space: nowrap;
-            min-width: 120px;
-        }
-        #start-camera-btn, #take-photo-btn {
-            background-color: var(--primary-color);
-        }
-        #start-camera-btn:hover, #take-photo-btn:hover {
-            background-color: #0056b3;
-        }
-        #upload-btn {
-            background-color: #f2a745;
-        }
-        #upload-btn:hover {
-            background-color: #da933a;
-        }
-        button[type="submit"] {
-            background-color: #28a745;
-        }
-        button[type="submit"]:hover {
-            background-color: #218838;
-        }
-        
-        /* Trạng thái và thông báo */
-        .status-message {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
+            color: #333;
             text-align: center;
+            margin: 20px 0;
+            user-select: none;
+        }
+        #video {
+            width: 100%;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        #preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            display: none;
+            margin: 20px 0;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+        }
+        #file-input {
             display: none;
         }
-        
-        .error {
-            background-color: #ffebee;
-            color: var(--error-color);
-            display: block;
+        .btn {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
         }
-        
-        .success {
-            background-color: #e8f5e9;
-            color: var(--success-color);
-            display: block;
+        #save-btn { background: #4CAF50; color: white; }
+        #delete-btn { background: #f44336; color: white; }
+        #refresh-btn { background: #2196F3; color: white; margin-top: 10px; }
+        #search-input {
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
         }
-        
-        /* Danh sách sản phẩm */
-        .product-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+        #gallery {
+            margin-top: 20px;
         }
-        .product-item {
+        .photo-item {
+            background: white;
+            border: 1px solid #eee;
+            padding: 15px;
+            margin: 10px 0;
             display: flex;
             align-items: center;
-            background-color: var(--card-bg);
-            padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        .product-item img {
+        .photo-item img {
             width: 80px;
             height: 80px;
             object-fit: cover;
-            border-radius: 6px;
             margin-right: 15px;
+            border-radius: 5px;
         }
-        .product-info {
+        .photo-info {
             flex: 1;
         }
-        .product-info strong {
-            display: block;
-        }
-        
-        /* Media Queries cho máy tính bảng và màn hình lớn hơn */
-        @media (min-width: 768px) {
-            body {
-                padding: 40px;
-            }
-            form, #product-list {
-                max-width: 600px;
-                margin-left: auto;
-                margin-right: auto;
-            }
-            .btn-group {
-                flex-wrap: nowrap;
-            }
-            .product-list {
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .product-item {
-                width: calc(50% - 15px);
-            }
-        }
-    </style>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
-</head>
-<body>
-
-    <h1>Quản Lý Thuốc</h1>
-    
-    <div id="camera-container">
-        <div class="placeholder" id="camera-placeholder">Chưa có hình ảnh. Vui lòng chụp ảnh hoặc tải lên.</div>
-        <video id="webcam" autoplay playsinline></video>
-        <canvas id="photo-canvas"></canvas>
-        <img id="uploaded-image" src="" alt="Ảnh đã tải lên">
-    </div>
-
-    <div id="status-message" class="status-message"></div>
-
-    <form id="product-form">
-        <label for="product-name">Tên sản phẩm:</label>
-        <input type="text" id="product-name" required>
-        
-        <label for="expiry-date">Hạn sử dụng:</label>
-        <input type="date" id="expiry-date" required>
-        
-        <div class="btn-group">
-            <button type="button" id="start-camera-btn">Mở Camera</button>
-            <button type="button" id="take-photo-btn" style="display: none;">Chụp Ảnh</button>
-            <button type="button" id="upload-btn">Tải ảnh lên</button>
-            <input type="file" id="file-input" accept="image/*" style="display: none;">
-            <button type="submit" id="save-btn" style="display: none;">Lưu</button>
-        </div>
-    </form>
-
-    <hr style="margin: 40px 0;">
-    
-    <h2>Danh sách Thuốc</h2>
-    <div class="product-list" id="product-list">
-        <!-- Danh sách sản phẩm sẽ được thêm ở đây -->
-    </div>
-
-    <script>
-       <!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản Lý Thuốc</title>
-    <style>
-        /* CSS Cơ bản & Mobile-First */
-        :root {
-            --primary-color: #007bff;
-            --secondary-color: #6c757d;
-            --bg-color: #f8f9fa;
-            --border-color: #dee2e6;
-            --card-bg: #ffffff;
-            --error-color: #dc3545;
-            --success-color: #28a745;
+        .photo-actions button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            font-size: 14px;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: var(--bg-color);
-            color: #333;
-        }
-
-        h1, h2 {
+        /* Loading */
+        .loading {
             text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 20px;
+            color: #666;
+            font-style: italic;
+            margin: 20px 0;
         }
 
-        /* Container cho Camera và Canvas */
-        #camera-container {
+        /* Pagination */
+        .pagination {
             display: flex;
             justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: auto;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            min-height: 250px;
-            background-color: #f0f0f0;
-            position: relative;
+            margin: 20px 0;
+            gap: 8px;
         }
-        
-        #camera-container .placeholder {
-            text-align: center;
-            color: var(--secondary-color);
-            padding: 20px;
+        .pagination button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
         }
-        
-        video, img#uploaded-image, canvas {
-            width: 100%;
-            height: auto;
-            display: none;
-            border-radius: 8px;
+        .pagination button.active {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
-        /* Form nhập liệu */
-        form {
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-        form label, form input {
-            display: block;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        form input {
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        
-        /* Nút bấm */
-        .btn-group {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap; /* Cho phép xuống dòng trên màn hình nhỏ */
-        }
-        button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 50px;
+        /* Toast thông báo */
+        #toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 5px;
             color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
             white-space: nowrap;
-            min-width: 120px;
         }
-        #start-camera-btn, #take-photo-btn {
-            background-color: var(--primary-color);
+        #toast.show {
+            transform: translateX(0);
         }
-        #start-camera-btn:hover, #take-photo-btn:hover {
-            background-color: #0056b3;
-        }
-        #upload-btn {
-            background-color: #f2a745;
-        }
-        #upload-btn:hover {
-            background-color: #da933a;
-        }
-        button[type="submit"] {
-            background-color: #28a745;
-        }
-        button[type="submit"]:hover {
-            background-color: #218838;
-        }
-        
-        /* Trạng thái và thông báo */
-        .status-message {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            text-align: center;
-            display: none;
-        }
-        
-        .error {
-            background-color: #ffebee;
-            color: var(--error-color);
-            display: block;
-        }
-        
-        .success {
-            background-color: #e8f5e9;
-            color: var(--success-color);
-            display: block;
-        }
-        
-        /* Danh sách sản phẩm */
-        .product-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .product-item {
-            display: flex;
-            align-items: center;
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-        .product-item img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 6px;
-            margin-right: 15px;
-        }
-        .product-info {
-            flex: 1;
-        }
-        .product-info strong {
-            display: block;
-        }
-        
-        /* Media Queries cho máy tính bảng và màn hình lớn hơn */
-        @media (min-width: 768px) {
-            body {
-                padding: 40px;
-            }
-            form, #product-list {
-                max-width: 600px;
-                margin-left: auto;
-                margin-right: auto;
-            }
-            .btn-group {
-                flex-wrap: nowrap;
-            }
-            .product-list {
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .product-item {
-                width: calc(50% - 15px);
-            }
-        }
+        .toast-success { background: #4CAF50; }
+        .toast-error { background: #f44336; }
     </style>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
 </head>
 <body>
 
-    <h1>Quản Lý Thuốc</h1>
-    
-    <div id="camera-container">
-        <div class="placeholder" id="camera-placeholder">Chưa có hình ảnh. Vui lòng chụp ảnh hoặc tải lên.</div>
-        <video id="webcam" autoplay playsinline></video>
-        <canvas id="photo-canvas"></canvas>
-        <img id="uploaded-image" src="" alt="Ảnh đã tải lên">
+    <h2>📷 Ứng dụng chụp & lưu ảnh</h2>
+
+    <!-- Biểu tượng camera -->
+    <div id="camera-btn">📷</div>
+
+    <!-- Video stream từ camera -->
+    <video id="video" autoplay playsinline style="display:none;"></video>
+
+    <!-- Nút chụp -->
+    <button id="capture-btn" class="btn" style="display:none;">📸 Chụp ảnh</button>
+
+    <!-- Preview ảnh sau khi chụp hoặc chọn -->
+    <img id="preview" />
+
+    <!-- Nút chọn ảnh từ thư viện -->
+    <button id="select-btn" class="btn">📂 Chọn ảnh từ thiết bị</button>
+    <input type="file" id="file-input" accept="image/*">
+
+    <!-- Form lưu ảnh -->
+    <div id="save-form" style="display:none; margin: 20px 0; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <input type="text" id="photo-name" placeholder="Tên ảnh" required><br><br>
+        <input type="date" id="photo-date" required><br><br>
+        <button id="save-btn" class="btn">💾 Lưu ảnh</button>
+        <button id="delete-btn" class="btn">🗑️ Xóa & làm lại</button>
     </div>
 
-    <div id="status-message" class="status-message"></div>
+    <!-- Tìm kiếm -->
+    <input type="text" id="search-input" placeholder="🔍 Tìm theo tên hoặc ngày (yyyy-mm-dd)...">
 
-    <form id="product-form">
-        <label for="product-name">Tên sản phẩm:</label>
-        <input type="text" id="product-name" required>
-        
-        <label for="expiry-date">Hạn sử dụng:</label>
-        <input type="date" id="expiry-date" required>
-        
-        <div class="btn-group">
-            <button type="button" id="start-camera-btn">Mở Camera</button>
-            <button type="button" id="take-photo-btn" style="display: none;">Chụp Ảnh</button>
-            <button type="button" id="upload-btn">Tải ảnh lên</button>
-            <input type="file" id="file-input" accept="image/*" style="display: none;">
-            <button type="submit" id="save-btn" style="display: none;">Lưu</button>
-        </div>
-    </form>
+    <!-- Nút làm mới -->
+    <button id="refresh-btn" class="btn">🔄 Làm mới danh sách</button>
 
-    <hr style="margin: 40px 0;">
-    
-    <h2>Danh sách Thuốc</h2>
-    <div class="product-list" id="product-list">
-        <!-- Danh sách sản phẩm sẽ được thêm ở đây -->
-    </div>
+    <!-- Danh sách ảnh đã lưu -->
+    <h3>📁 Ảnh đã lưu:</h3>
+    <div id="gallery"></div>
+
+    <!-- Phân trang -->
+    <div class="pagination" id="pagination"></div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" style="display:none;">Đang tải...</div>
+
+    <!-- Toast thông báo -->
+    <div id="toast"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
     <script>
       const firebaseConfig = {
@@ -474,535 +204,323 @@
   measurementId: "G-4Y1730XHMZ"
 };
 
-        
         // Khởi tạo Firebase
-        const app = firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const storage = firebase.storage();
 
-        // Lấy các phần tử DOM
-        const webcamElement = document.getElementById('webcam');
-        const canvasElement = document.getElementById('photo-canvas');
-        const uploadedImageElement = document.getElementById('uploaded-image');
-        const cameraPlaceholder = document.getElementById('camera-placeholder');
-        const startCameraButton = document.getElementById('start-camera-btn');
-        const takePhotoButton = document.getElementById('take-photo-btn');
-        const uploadButton = document.getElementById('upload-btn');
+        let currentStream = null;
+        let capturedImage = null;
+        let allPhotos = []; // lưu toàn bộ ảnh đã tải
+        let currentPage = 1;
+        const itemsPerPage = 5;
+        let isProcessing = false; // tránh double click
+
+        // DOM Elements
+        const cameraBtn = document.getElementById('camera-btn');
+        const video = document.getElementById('video');
+        const captureBtn = document.getElementById('capture-btn');
+        const preview = document.getElementById('preview');
+        const selectBtn = document.getElementById('select-btn');
         const fileInput = document.getElementById('file-input');
-        const productForm = document.getElementById('product-form');
-        const productList = document.getElementById('product-list');
-        const productNameInput = document.getElementById('product-name');
-        const expiryDateInput = document.getElementById('expiry-date');
-        const saveButton = document.getElementById('save-btn');
-        const statusMessage = document.getElementById('status-message');
+        const saveForm = document.getElementById('save-form');
+        const photoName = document.getElementById('photo-name');
+        const photoDate = document.getElementById('photo-date');
+        const saveBtn = document.getElementById('save-btn');
+        const deleteBtn = document.getElementById('delete-btn');
+        const gallery = document.getElementById('gallery');
+        const searchInput = document.getElementById('search-input');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const paginationEl = document.getElementById('pagination');
+        const loadingEl = document.getElementById('loading');
+        const toastEl = document.getElementById('toast');
 
-        let stream = null;
-        let photoBlob = null;
-        let photoTaken = false;
-
-        // Hiển thị thông báo
-        function showMessage(message, type = 'error') {
-            statusMessage.textContent = message;
-            statusMessage.className = 'status-message ' + type;
+        // Hiển thị toast thông báo
+        function showToast(message, isError = false) {
+            toastEl.textContent = message;
+            toastEl.className = isError ? 'toast-error' : 'toast-success';
+            toastEl.classList.add('show');
             setTimeout(() => {
-                statusMessage.className = 'status-message';
-            }, 5000);
+                toastEl.classList.remove('show');
+            }, 3000);
         }
 
-        // Dừng camera
-        function stopCameraStream() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
-        }
-
-        // Xử lý khi bấm nút "Mở Camera"
-        startCameraButton.addEventListener('click', async () => {
-            stopCameraStream(); // Dừng stream cũ nếu có
+        // Bật camera
+        cameraBtn.addEventListener('click', async () => {
             try {
-                // Ưu tiên camera sau trên thiết bị di động
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
-                });
-                webcamElement.srcObject = stream;
-                webcamElement.style.display = 'block';
-                canvasElement.style.display = 'none';
-                uploadedImageElement.style.display = 'none';
-                cameraPlaceholder.style.display = 'none';
-
-                startCameraButton.style.display = 'none';
-                takePhotoButton.style.display = 'inline-block';
-                uploadButton.style.display = 'none';
-                saveButton.style.display = 'none';
-                photoTaken = false;
-                
-                showMessage("Camera đã sẵn sàng. Nhấn 'Chụp Ảnh' để chụp.", 'success');
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                currentStream = stream;
+                video.style.display = 'block';
+                captureBtn.style.display = 'block';
+                cameraBtn.style.display = 'none';
             } catch (err) {
-                console.error("Lỗi khi truy cập camera: ", err);
-                showMessage("Không thể truy cập camera. Vui lòng kiểm tra quyền và thử lại.");
-                
-                // Fallback: sử dụng camera bất kỳ nếu camera sau không khả dụng
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    webcamElement.srcObject = stream;
-                    webcamElement.style.display = 'block';
-                    canvasElement.style.display = 'none';
-                    uploadedImageElement.style.display = 'none';
-                    cameraPlaceholder.style.display = 'none';
-
-                    startCameraButton.style.display = 'none';
-                    takePhotoButton.style.display = 'inline-block';
-                    uploadButton.style.display = 'none';
-                    saveButton.style.display = 'none';
-                    photoTaken = false;
-                    
-                    showMessage("Camera đã sẵn sàng. Nhấn 'Chụp Ảnh' để chụp.", 'success');
-                } catch (fallbackErr) {
-                    console.error("Lỗi fallback camera: ", fallbackErr);
-                    showMessage("Không thể truy cập camera. Vui lòng sử dụng tính năng tải ảnh lên.");
-                }
+                showToast('Không thể truy cập camera: ' + err.message, true);
             }
         });
 
-        // Xử lý khi bấm nút "Chụp Ảnh"
-        takePhotoButton.addEventListener('click', () => {
-            if (!stream) {
-                showMessage("Camera chưa được khởi động. Vui lòng thử lại.");
-                return;
-            }
-            
-            canvasElement.width = webcamElement.videoWidth;
-            canvasElement.height = webcamElement.videoHeight;
-            const context = canvasElement.getContext('2d');
-            context.drawImage(webcamElement, 0, 0, canvasElement.width, canvasElement.height);
-            
-            canvasElement.toBlob(blob => {
-                photoBlob = blob;
-            }, 'image/jpeg', 0.95);
-            
-            stopCameraStream();
+        // Chụp ảnh
+        captureBtn.addEventListener('click', () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            capturedImage = canvas.toDataURL('image/png');
 
-            webcamElement.style.display = 'none';
-            canvasElement.style.display = 'block';
-            cameraPlaceholder.style.display = 'none';
-            
-            takePhotoButton.style.display = 'none';
-            startCameraButton.style.display = 'inline-block';
-            uploadButton.style.display = 'inline-block';
-            saveButton.style.display = 'inline-block';
-            photoTaken = true;
-            
-            showMessage("Ảnh đã được chụp. Bạn có thể lưu thông tin sản phẩm.", 'success');
+            // Dừng camera
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            video.style.display = 'none';
+            captureBtn.style.display = 'none';
+
+            // Hiển thị ảnh
+            preview.src = capturedImage;
+            preview.style.display = 'block';
+            saveForm.style.display = 'block';
         });
 
-        // Xử lý khi bấm nút "Tải ảnh lên"
-        uploadButton.addEventListener('click', () => {
-            stopCameraStream(); // Dừng camera nếu đang chạy
+        // Chọn ảnh từ thiết bị
+        selectBtn.addEventListener('click', () => {
             fileInput.click();
         });
 
         fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                // Kiểm tra xem file có phải là hình ảnh không
-                if (!file.type.match('image.*')) {
-                    showMessage("Vui lòng chọn file hình ảnh.");
-                    return;
-                }
-                
-                photoBlob = file;
+            if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    uploadedImageElement.src = event.target.result;
-                    uploadedImageElement.style.display = 'block';
-                    webcamElement.style.display = 'none';
-                    canvasElement.style.display = 'none';
-                    cameraPlaceholder.style.display = 'none';
-                    
-                    startCameraButton.style.display = 'inline-block';
-                    takePhotoButton.style.display = 'none';
-                    uploadButton.style.display = 'inline-block';
-                    saveButton.style.display = 'inline-block';
-                    photoTaken = true;
-                    
-                    showMessage("Ảnh đã được tải lên. Bạn có thể lưu thông tin sản phẩm.", 'success');
-                };
-                reader.onerror = function() {
-                    showMessage("Lỗi khi đọc file. Vui lòng thử lại.");
+                reader.onload = (ev) => {
+                    capturedImage = ev.target.result;
+                    preview.src = capturedImage;
+                    preview.style.display = 'block';
+                    saveForm.style.display = 'block';
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // Xử lý khi bấm nút "Lưu"
-        productForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Lưu ảnh
+        saveBtn.addEventListener('click', async () => {
+            if (isProcessing) return;
+            const name = photoName.value.trim();
+            const date = photoDate.value;
+            if (!name || !date || !capturedImage) {
+                showToast('Vui lòng nhập đủ thông tin!', true);
+                return;
+            }
 
-            if (!photoTaken) {
-                showMessage("Vui lòng chụp ảnh hoặc tải ảnh lên sản phẩm trước khi lưu.");
-                return;
-            }
-            
-            const productName = productNameInput.value.trim();
-            const expiryDate = expiryDateInput.value;
-            
-            if (!productName) {
-                showMessage("Vui lòng nhập tên sản phẩm.");
-                return;
-            }
-            
-            if (!expiryDate) {
-                showMessage("Vui lòng chọn hạn sử dụng.");
-                return;
-            }
-            
-            saveButton.disabled = true;
-            saveButton.textContent = "Đang lưu...";
+            isProcessing = true;
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Đang lưu...';
 
-            const photoName = `images/${Date.now()}_${productName.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
-            const storageRef = storage.ref(photoName);
-            
             try {
-                // Tải ảnh lên Firebase Storage
-                const snapshot = await storageRef.put(photoBlob);
-                const downloadURL = await snapshot.ref.getDownloadURL();
-                
-                // Lưu thông tin sản phẩm vào Firestore
-                await db.collection("products").add({
-                    name: productName,
-                    expiryDate: expiryDate,
-                    imageUrl: downloadURL,
+                // Upload ảnh
+                loadingEl.style.display = 'block';
+                const storageRef = storage.ref();
+                const imageRef = storageRef.child(`images/${Date.now()}.png`);
+                const response = await fetch(capturedImage);
+                const blob = await response.blob();
+                await imageRef.put(blob);
+                const imageUrl = await imageRef.getDownloadURL();
+
+                // Lưu metadata
+                await db.collection('photos').add({
+                    name,
+                    date,
+                    imageUrl,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                
-                showMessage("Lưu thuốc thành công!", 'success');
-                productForm.reset();
-                loadProducts();
-                
-                // Reset giao diện
-                uploadedImageElement.style.display = 'none';
-                webcamElement.style.display = 'none';
-                canvasElement.style.display = 'none';
-                cameraPlaceholder.style.display = 'block';
-                startCameraButton.style.display = 'inline-block';
-                takePhotoButton.style.display = 'none';
-                uploadButton.style.display = 'inline-block';
-                saveButton.style.display = 'none';
-                photoTaken = false;
-                
-            } catch (error) {
-                console.error("Lỗi khi lưu sản phẩm:", error);
-                showMessage("Lỗi khi lưu sản phẩm. Vui lòng thử lại.");
-            } finally {
-                saveButton.disabled = false;
-                saveButton.textContent = "Lưu";
-            }
-        });
 
-        // Tải và hiển thị danh sách thuốc
-        async function loadProducts() {
-            try {
-                const snapshot = await db.collection("products")
-                    .orderBy("createdAt", "desc")
-                    .get();
-                
-                productList.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    productList.innerHTML = '<p>Chưa có thuốc nào được lưu.</p>';
-                    return;
-                }
-                
-                snapshot.forEach(doc => {
-                    const product = doc.data();
-                    const productElement = document.createElement('div');
-                    productElement.className = 'product-item';
-                    
-                    productElement.innerHTML = `
-                        <img src="${product.imageUrl}" alt="${product.name}">
-                        <div class="product-info">
-                            <strong>${product.name}</strong>
-                            <p>HSD: ${new Date(product.expiryDate).toLocaleDateString('vi-VN')}</p>
-                        </div>
-                    `;
-                    
-                    productList.appendChild(productElement);
-                });
-            } catch (error) {
-                console.error("Lỗi khi tải danh sách sản phẩm:", error);
-                productList.innerHTML = '<p>Lỗi khi tải danh sách sản phẩm.</p>';
-            }
-        }
-
-        // Tải danh sách sản phẩm khi trang được tải
-        document.addEventListener('DOMContentLoaded', loadProducts);
-    </script>
-</body>
-</html>
-        
-        // Khởi tạo Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-
-        // Lấy các phần tử DOM
-        const webcamElement = document.getElementById('webcam');
-        const canvasElement = document.getElementById('photo-canvas');
-        const uploadedImageElement = document.getElementById('uploaded-image');
-        const cameraPlaceholder = document.getElementById('camera-placeholder');
-        const startCameraButton = document.getElementById('start-camera-btn');
-        const takePhotoButton = document.getElementById('take-photo-btn');
-        const uploadButton = document.getElementById('upload-btn');
-        const fileInput = document.getElementById('file-input');
-        const productForm = document.getElementById('product-form');
-        const productList = document.getElementById('product-list');
-        const productNameInput = document.getElementById('product-name');
-        const expiryDateInput = document.getElementById('expiry-date');
-        const saveButton = document.getElementById('save-btn');
-        const statusMessage = document.getElementById('status-message');
-
-        let stream = null;
-        let photoBlob = null;
-        let photoTaken = false;
-
-        // Hiển thị thông báo
-        function showMessage(message, type = 'error') {
-            statusMessage.textContent = message;
-            statusMessage.className = 'status-message ' + type;
-            setTimeout(() => {
-                statusMessage.className = 'status-message';
-            }, 5000);
-        }
-
-        // Dừng camera
-        function stopCameraStream() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
-        }
-
-        // Xử lý khi bấm nút "Mở Camera"
-        startCameraButton.addEventListener('click', async () => {
-            stopCameraStream(); // Dừng stream cũ nếu có
-            try {
-                // Ưu tiên camera sau trên thiết bị di động
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
-                });
-                webcamElement.srcObject = stream;
-                webcamElement.style.display = 'block';
-                canvasElement.style.display = 'none';
-                uploadedImageElement.style.display = 'none';
-                cameraPlaceholder.style.display = 'none';
-
-                startCameraButton.style.display = 'none';
-                takePhotoButton.style.display = 'inline-block';
-                uploadButton.style.display = 'none';
-                saveButton.style.display = 'none';
-                photoTaken = false;
-                
-                showMessage("Camera đã sẵn sàng. Nhấn 'Chụp Ảnh' để chụp.", 'success');
+                showToast('✅ Lưu ảnh thành công!');
+                resetForm();
+                loadGallery(); // Tải lại danh sách
             } catch (err) {
-                console.error("Lỗi khi truy cập camera: ", err);
-                showMessage("Không thể truy cập camera. Vui lòng kiểm tra quyền và thử lại.");
-                
-                // Fallback: sử dụng camera bất kỳ nếu camera sau không khả dụng
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    webcamElement.srcObject = stream;
-                    webcamElement.style.display = 'block';
-                    canvasElement.style.display = 'none';
-                    uploadedImageElement.style.display = 'none';
-                    cameraPlaceholder.style.display = 'none';
-
-                    startCameraButton.style.display = 'none';
-                    takePhotoButton.style.display = 'inline-block';
-                    uploadButton.style.display = 'none';
-                    saveButton.style.display = 'none';
-                    photoTaken = false;
-                    
-                    showMessage("Camera đã sẵn sàng. Nhấn 'Chụp Ảnh' để chụp.", 'success');
-                } catch (fallbackErr) {
-                    console.error("Lỗi fallback camera: ", fallbackErr);
-                    showMessage("Không thể truy cập camera. Vui lòng sử dụng tính năng tải ảnh lên.");
-                }
-            }
-        });
-
-        // Xử lý khi bấm nút "Chụp Ảnh"
-        takePhotoButton.addEventListener('click', () => {
-            if (!stream) {
-                showMessage("Camera chưa được khởi động. Vui lòng thử lại.");
-                return;
-            }
-            
-            canvasElement.width = webcamElement.videoWidth;
-            canvasElement.height = webcamElement.videoHeight;
-            const context = canvasElement.getContext('2d');
-            context.drawImage(webcamElement, 0, 0, canvasElement.width, canvasElement.height);
-            
-            canvasElement.toBlob(blob => {
-                photoBlob = blob;
-            }, 'image/jpeg', 0.95);
-            
-            stopCameraStream();
-
-            webcamElement.style.display = 'none';
-            canvasElement.style.display = 'block';
-            cameraPlaceholder.style.display = 'none';
-            
-            takePhotoButton.style.display = 'none';
-            startCameraButton.style.display = 'inline-block';
-            uploadButton.style.display = 'inline-block';
-            saveButton.style.display = 'inline-block';
-            photoTaken = true;
-            
-            showMessage("Ảnh đã được chụp. Bạn có thể lưu thông tin sản phẩm.", 'success');
-        });
-
-        // Xử lý khi bấm nút "Tải ảnh lên"
-        uploadButton.addEventListener('click', () => {
-            stopCameraStream(); // Dừng camera nếu đang chạy
-            fileInput.click();
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                // Kiểm tra xem file có phải là hình ảnh không
-                if (!file.type.match('image.*')) {
-                    showMessage("Vui lòng chọn file hình ảnh.");
-                    return;
-                }
-                
-                photoBlob = file;
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    uploadedImageElement.src = event.target.result;
-                    uploadedImageElement.style.display = 'block';
-                    webcamElement.style.display = 'none';
-                    canvasElement.style.display = 'none';
-                    cameraPlaceholder.style.display = 'none';
-                    
-                    startCameraButton.style.display = 'inline-block';
-                    takePhotoButton.style.display = 'none';
-                    uploadButton.style.display = 'inline-block';
-                    saveButton.style.display = 'inline-block';
-                    photoTaken = true;
-                    
-                    showMessage("Ảnh đã được tải lên. Bạn có thể lưu thông tin sản phẩm.", 'success');
-                };
-                reader.onerror = function() {
-                    showMessage("Lỗi khi đọc file. Vui lòng thử lại.");
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Xử lý khi bấm nút "Lưu"
-        productForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            if (!photoTaken) {
-                showMessage("Vui lòng chụp ảnh hoặc tải ảnh lên sản phẩm trước khi lưu.");
-                return;
-            }
-            
-            const productName = productNameInput.value.trim();
-            const expiryDate = expiryDateInput.value;
-            
-            if (!productName) {
-                showMessage("Vui lòng nhập tên sản phẩm.");
-                return;
-            }
-            
-            if (!expiryDate) {
-                showMessage("Vui lòng chọn hạn sử dụng.");
-                return;
-            }
-            
-            saveButton.disabled = true;
-            saveButton.textContent = "Đang lưu...";
-
-            const photoName = `images/${Date.now()}_${productName.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
-            const storageRef = storage.ref(photoName);
-            
-            try {
-                // Tải ảnh lên Firebase Storage
-                const snapshot = await storageRef.put(photoBlob);
-                const downloadURL = await snapshot.ref.getDownloadURL();
-                
-                // Lưu thông tin sản phẩm vào Firestore
-                await db.collection("products").add({
-                    name: productName,
-                    expiryDate: expiryDate,
-                    imageUrl: downloadURL,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                showMessage("Lưu thuốc thành công!", 'success');
-                productForm.reset();
-                loadProducts();
-                
-                // Reset giao diện
-                uploadedImageElement.style.display = 'none';
-                webcamElement.style.display = 'none';
-                canvasElement.style.display = 'none';
-                cameraPlaceholder.style.display = 'block';
-                startCameraButton.style.display = 'inline-block';
-                takePhotoButton.style.display = 'none';
-                uploadButton.style.display = 'inline-block';
-                saveButton.style.display = 'none';
-                photoTaken = false;
-                
-            } catch (error) {
-                console.error("Lỗi khi lưu sản phẩm:", error);
-                showMessage("Lỗi khi lưu sản phẩm. Vui lòng thử lại.");
+                console.error(err);
+                showToast('❌ Lỗi khi lưu ảnh: ' + err.message, true);
             } finally {
-                saveButton.disabled = false;
-                saveButton.textContent = "Lưu";
+                isProcessing = false;
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Lưu ảnh';
+                loadingEl.style.display = 'none';
             }
         });
 
-        // Tải và hiển thị danh sách thuốc
-        async function loadProducts() {
+        // Xóa & làm lại
+        deleteBtn.addEventListener('click', resetForm);
+
+        function resetForm() {
+            capturedImage = null;
+            preview.style.display = 'none';
+            saveForm.style.display = 'none';
+            photoName.value = '';
+            photoDate.value = '';
+            cameraBtn.style.display = 'block';
+        }
+
+        // Tải danh sách ảnh (có hỗ trợ tìm kiếm)
+        async function loadGallery(searchQuery = '') {
+            if (isProcessing) return;
+            isProcessing = true;
+            loadingEl.style.display = 'block';
+            gallery.innerHTML = '';
+
             try {
-                const snapshot = await db.collection("products")
-                    .orderBy("createdAt", "desc")
-                    .get();
-                
-                productList.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    productList.innerHTML = '<p>Chưa có thuốc nào được lưu.</p>';
-                    return;
+                let query = db.collection('photos').orderBy('createdAt', 'desc');
+
+                if (searchQuery) {
+                    // Tìm theo tên (không phân biệt hoa thường)
+                    query = query.where('name', '>=', searchQuery.toLowerCase())
+                                .where('name', '<=', searchQuery.toLowerCase() + '\uf8ff');
+                    // Hoặc tìm theo ngày nếu nhập đúng định dạng yyyy-mm-dd
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(searchQuery)) {
+                        query = db.collection('photos').where('date', '==', searchQuery).orderBy('createdAt', 'desc');
+                    }
                 }
-                
+
+                const snapshot = await query.get();
+                allPhotos = [];
                 snapshot.forEach(doc => {
-                    const product = doc.data();
-                    const productElement = document.createElement('div');
-                    productElement.className = 'product-item';
-                    
-                    productElement.innerHTML = `
-                        <img src="${product.imageUrl}" alt="${product.name}">
-                        <div class="product-info">
-                            <strong>${product.name}</strong>
-                            <p>HSD: ${new Date(product.expiryDate).toLocaleDateString('vi-VN')}</p>
-                        </div>
-                    `;
-                    
-                    productList.appendChild(productElement);
+                    allPhotos.push({ id: doc.id, ...doc.data() });
                 });
-            } catch (error) {
-                console.error("Lỗi khi tải danh sách sản phẩm:", error);
-                productList.innerHTML = '<p>Lỗi khi tải danh sách sản phẩm.</p>';
+
+                currentPage = 1;
+                renderGallery();
+                setupPagination();
+            } catch (err) {
+                showToast('❌ Lỗi tải danh sách: ' + err.message, true);
+            } finally {
+                isProcessing = false;
+                loadingEl.style.display = 'none';
             }
         }
 
-        // Tải danh sách sản phẩm khi trang được tải
-        document.addEventListener('DOMContentLoaded', loadProducts);
+        // Render ảnh theo trang
+        function renderGallery() {
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pagePhotos = allPhotos.slice(start, end);
+
+            gallery.innerHTML = '';
+            if (pagePhotos.length === 0) {
+                gallery.innerHTML = '<p>Không có ảnh nào.</p>';
+                return;
+            }
+
+            pagePhotos.forEach(photo => {
+                const item = document.createElement('div');
+                item.className = 'photo-item';
+                const displayDate = photo.date ? photo.date : 'Không có ngày';
+                item.innerHTML = `
+                    <img src="${photo.imageUrl}" alt="${photo.name}" onerror="this.src='https://via.placeholder.com/80?text=Error'">
+                    <div class="photo-info">
+                        <strong>${photo.name}</strong><br>
+                        Ngày: ${displayDate}
+                    </div>
+                    <div class="photo-actions">
+                        <button onclick="deletePhoto('${photo.id}')">🗑️ Xóa</button>
+                    </div>
+                `;
+                gallery.appendChild(item);
+            });
+        }
+
+        // Thiết lập phân trang
+        function setupPagination() {
+            const totalPages = Math.ceil(allPhotos.length / itemsPerPage);
+            paginationEl.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            // Nút trang trước
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '❮';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderGallery();
+                    setupPagination();
+                }
+            });
+            paginationEl.appendChild(prevBtn);
+
+            // Các nút trang
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    const btn = document.createElement('button');
+                    btn.textContent = i;
+                    btn.className = 'active';
+                    btn.disabled = true;
+                    paginationEl.appendChild(btn);
+                } else {
+                    const btn = document.createElement('button');
+                    btn.textContent = i;
+                    btn.addEventListener('click', () => {
+                        currentPage = i;
+                        renderGallery();
+                        setupPagination();
+                    });
+                    paginationEl.appendChild(btn);
+                }
+            }
+
+            // Nút trang sau
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '❯';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderGallery();
+                    setupPagination();
+                }
+            });
+            paginationEl.appendChild(nextBtn);
+        }
+
+        // Xóa ảnh
+        window.deletePhoto = async (id) => {
+            if (isProcessing) return;
+            if (!confirm('Bạn có chắc muốn xóa ảnh này?')) return;
+
+            isProcessing = true;
+            loadingEl.style.display = 'block';
+
+            try {
+                const doc = await db.collection('photos').doc(id).get();
+                const data = doc.data();
+                const imageRef = storage.refFromURL(data.imageUrl);
+                await imageRef.delete();
+                await db.collection('photos').doc(id).delete();
+
+                showToast('✅ Đã xóa ảnh!');
+                loadGallery(searchInput.value); // Tải lại theo bộ lọc hiện tại
+            } catch (err) {
+                showToast('❌ Lỗi khi xóa: ' + err.message, true);
+            } finally {
+                isProcessing = false;
+                loadingEl.style.display = 'none';
+            }
+        };
+
+        // Tìm kiếm
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                loadGallery(searchInput.value.trim());
+            }, 500); // debounce 0.5s
+        });
+
+        // Làm mới danh sách
+        refreshBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            loadGallery();
+        });
+
+        // Tự động load lần đầu
+        loadGallery();
     </script>
 </body>
 </html>
