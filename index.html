@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Thuốc</title>
+    <style>
+        /* CSS Cơ bản & Mobile-First */
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --bg-color: #f8f9fa;
+            --border-color: #dee2e6;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: #333;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        /* Container cho Camera và Canvas */
+        #camera-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        video {
+            width: 100%;
+            height: auto;
+            display: none;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            display: none;
+            border-radius: 8px;
+        }
+
+        /* Form nhập liệu */
+        form {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        form label, form input {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        form input {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box; /* Đảm bảo padding không làm tăng chiều rộng */
+        }
+        
+        /* Nút bấm */
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #start-camera-btn, #take-photo-btn {
+            background-color: var(--primary-color);
+        }
+        #start-camera-btn:hover, #take-photo-btn:hover {
+            background-color: #0056b3;
+        }
+        button[type="submit"] {
+            background-color: #28a745;
+        }
+        button[type="submit"]:hover {
+            background-color: #218838;
+        }
+        
+        /* Danh sách sản phẩm */
+        .product-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .product-item {
+            display: flex;
+            align-items: center;
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .product-item img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-right: 15px;
+        }
+        .product-info {
+            flex: 1;
+        }
+        .product-info strong {
+            display: block;
+        }
+        
+        /* Media Queries cho máy tính bảng và màn hình lớn hơn */
+        @media (min-width: 768px) {
+            body {
+                padding: 40px;
+            }
+            form, #product-list {
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .product-list {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .product-item {
+                width: calc(50% - 15px); /* 2 item/hàng */
+            }
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
+</head>
+<body>
+
+    <h1>Quản Lý Thuốc</h1>
+    
+    <div id="camera-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="photo-canvas"></canvas>
+    </div>
+
+    <form id="product-form">
+        <label for="product-name">Tên sản phẩm:</label>
+        <input type="text" id="product-name" required>
+        
+        <label for="expiry-date">Hạn sử dụng:</label>
+        <input type="date" id="expiry-date" required>
+        
+        <div class="btn-group">
+            <button type="button" id="start-camera-btn">Mở Camera</button>
+            <button type="button" id="take-photo-btn" style="display: none;">Chụp Ảnh</button>
+            <button type="submit" style="display: none;">Lưu</button>
+        </div>
+    </form>
+
+    <hr style="margin: 40px 0;">
+    
+    <h2>Danh sách Thuốc</h2>
+    <div class="product-list" id="product-list">
+        </div>
+
+    <script>
+        // Thay đổi cấu hình Firebase dưới đây bằng thông tin của bạn
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        const webcamElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('photo-canvas');
+        const startCameraButton = document.getElementById('start-camera-btn');
+        const takePhotoButton = document.getElementById('take-photo-btn');
+        const productForm = document.getElementById('product-form');
+        const productList = document.getElementById('product-list');
+        const productNameInput = document.getElementById('product-name');
+        const expiryDateInput = document.getElementById('expiry-date');
+        const saveButton = productForm.querySelector('button[type="submit"]');
+
+        let stream = null;
+        let photoBlob = null;
+        let photoTaken = false;
+
+        startCameraButton.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); // Ưu tiên camera sau trên mobile
+                webcamElement.srcObject = stream;
+                webcamElement.style.display = 'block';
+                canvasElement.style.display = 'none';
+                startCameraButton.style.display = 'none';
+                takePhotoButton.style.display = 'inline-block';
+                saveButton.style.display = 'none';
+                photoTaken = false;
+            } catch (err) {
+                console.error("Lỗi khi truy cập camera: ", err);
+                alert("Không thể truy cập camera. Vui lòng cấp quyền.");
+            }
+        });
+
+        takePhotoButton.addEventListener('click', () => {
+            canvasElement.width = webcamElement.videoWidth;
+            canvasElement.height = webcamElement.videoHeight;
+            canvasElement.getContext('2d').drawImage(webcamElement, 0, 0, canvasElement.width, canvasElement.height);
+            
+            canvasElement.toBlob(blob => {
+                photoBlob = blob;
+            });
+
+            // Dừng stream camera để tiết kiệm pin
+            stream.getTracks().forEach(track => track.stop());
+
+            webcamElement.style.display = 'none';
+            canvasElement.style.display = 'block';
+            takePhotoButton.style.display = 'none';
+            startCameraButton.style.display = 'inline-block';
+            saveButton.style.display = 'inline-block';
+            photoTaken = true;
+        });
+
+        productForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!photoTaken) {
+                alert("Vui lòng chụp ảnh sản phẩm trước khi lưu.");
+                return;
+            }
+            
+            saveButton.disabled = true;
+            saveButton.textContent = "Đang lưu...";
+
+            const productName = productNameInput.value;
+            const expiryDate = expiryDateInput.value;
+            
+            const photoName = `images/${Date.now()}_${productName.replace(/ /g, '_')}.jpg`;
+            const storageRef = storage.ref(photoName);
+            const uploadTask = storageRef.put(photoBlob);
+
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    // Cập nhật trạng thái tải lên nếu cần
+                }, 
+                (error) => {
+                    console.error("Lỗi tải ảnh lên:", error);
+                    alert("Lỗi khi tải ảnh lên. Vui lòng thử lại.");
+                    saveButton.disabled = false;
+                    saveButton.textContent = "Lưu";
+                }, 
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then(async (downloadURL) => {
+                        await db.collection("products").add({
+                            name: productName,
+                            expiryDate: expiryDate,
+                            imageUrl: downloadURL,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        alert("Lưu thuốc thành công!");
+                        productForm.reset();
+                        loadProducts();
+                        
+                        // Reset giao diện
+                        webcamElement.style.display = 'none';
+                        canvasElement.style.display = 'none';
+                        startCameraButton.style.display = 'inline-block';
+                        takePhotoButton.style.display = 'none';
+                        saveButton.style.display = 'none';
+                        saveButton.disabled = false;
+                        saveButton.textContent = "Lưu";
+                        photoTaken = false;
+                    });
+                }
+            );
+        });
+
+        const loadProducts = () => {
+            db.collection("products").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+                productList.innerHTML = "";
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const item = document.createElement('div');
+                    item.classList.add('product-item');
+                    item.innerHTML = `
+                        <img src="${data.imageUrl}" alt="${data.name}">
+                        <div class="product-info">
+                            <strong>${data.name}</strong><br>
+                            <span>Hạn dùng: ${data.expiryDate}</span>
+                        </div>
+                    `;
+                    productList.appendChild(item);
+                });
+            });
+        };
+
+        window.addEventListener('load', loadProducts);
+
+    </script>
+</body>
+</html>
