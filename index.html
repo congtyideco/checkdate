@@ -678,22 +678,10 @@
                     const jsonData = [];
                     workbook.SheetNames.forEach(sheetName => {
                         const worksheet = workbook.Sheets[sheetName];
-                        const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        const sheetData = XLSX.utils.sheet_to_json(worksheet);
                         
-                        // Process headers and data
-                        if (sheetData.length > 0) {
-                            const headers = sheetData[0];
-                            for (let i = 1; i < sheetData.length; i++) {
-                                const row = {};
-                                for (let j = 0; j < headers.length; j++) {
-                                    if (j < sheetData[i].length) {
-                                        row[headers[j]] = sheetData[i][j];
-                                    }
-                                }
-                                if (Object.keys(row).length > 0) {
-                                    jsonData.push(row);
-                                }
-                            }
+                        if (sheetData && sheetData.length > 0) {
+                            jsonData.push(...sheetData);
                         }
                     });
                     
@@ -799,7 +787,8 @@
                         // Try to find product name in common columns
                         const productName = row['Tên thuốc'] || row['Tên sản phẩm'] || row['Tên'] || 
                                            row['Sản phẩm'] || row['Product Name'] || row['Product'] ||
-                                           row['Tên hàng'] || row['Tên sản phẩm'] || row['Thuốc'];
+                                           row['Tên hàng'] || row['Tên sản phẩm'] || row['Thuốc'] ||
+                                           row['Tên'] || row['Name'] || row['Product'];
                         
                         if (productName && !productNames.includes(productName)) {
                             productNames.push(productName);
