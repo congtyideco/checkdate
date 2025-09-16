@@ -1094,8 +1094,8 @@
             
             doc.setFontSize(12);
             doc.text(`Tên sản phẩm: ${productName.value}`, 20, 155);
-            doc.text(`Số lô: ${lotNumber.value || 'N/A'}`, 20, 165);
-            doc.text(`Hạn dùng: ${new Date(expiryDate.value).toLocaleDateString('vi-VN')}`, 20, 175);
+            doc.text(`Số lô: ${lotNumber.value || 'kiểm tra kỹ '}`, 20, 165);
+            doc.text(`Ngày chụp: ${new Date(expiryDate.value).toLocaleDateString('vi-VN')}`, 20, 175);
             doc.text(`Số lượng: ${quantity.value || 1}`, 20, 185);
             doc.text(`Vị trí lưu trữ: ${storageLocation.value || 'N/A'}`, 20, 195);
             
@@ -1267,7 +1267,7 @@
                         <div class="product-info">
                             <div><strong>Tên sản phẩm:</strong> ${doc.productName || 'N/A'}</div>
                             <div><strong>Số lô:</strong> ${doc.lotNumber || 'N/A'}</div>
-                            <div><strong>Hạn dùng:</strong> ${new Date(doc.expiryDate).toLocaleDateString('vi-VN')}</div>
+                            <div><strong>Ngày chụp:</strong> ${new Date(doc.expiryDate).toLocaleDateString('vi-VN')}</div>
                             <div><strong>Số lượng:</strong> ${doc.quantity || 1}</div>
                             <div><strong>Vị trí lưu trữ:</strong> ${doc.storageLocation || 'N/A'}</div>
                             <div><strong>Ngày tạo:</strong> ${new Date(doc.createdAt).toLocaleString('vi-VN')}</div>
