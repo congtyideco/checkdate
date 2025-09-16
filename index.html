@@ -3,524 +3,728 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📷 Ứng dụng chụp & lưu ảnh (Nâng cao)</title>
+    <title>Ứng dụng Quản lý Kho Dược (Firebase)</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #fca311;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
             padding: 20px;
-            background: #f9f9f9;
         }
-        h2, h3 {
-            color: #333;
-        }
-        #camera-btn {
-            font-size: 48px;
-            cursor: pointer;
-            color: #333;
-            text-align: center;
-            margin: 20px 0;
-            user-select: none;
-        }
-        #video {
-            width: 100%;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        #preview {
-            width: 100%;
-            max-height: 300px;
-            object-fit: contain;
-            display: none;
-            margin: 20px 0;
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-        }
-        #file-input {
-            display: none;
-        }
-        .btn {
-            padding: 10px 15px;
-            margin: 5px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        #save-btn { background: #4CAF50; color: white; }
-        #delete-btn { background: #f44336; color: white; }
-        #refresh-btn { background: #2196F3; color: white; margin-top: 10px; }
-        #search-input {
-            width: 100%;
-            padding: 10px;
-            margin: 15px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        #gallery {
-            margin-top: 20px;
-        }
-        .photo-item {
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
             background: white;
-            border: 1px solid #eee;
-            padding: 15px;
-            margin: 10px 0;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .app-content {
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .camera-section, .list-section {
+            flex: 1;
+            min-width: 300px;
+            background: var(--light);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .list-section {
+            min-width: 400px;
+        }
+        
+        .section-title {
+            font-size: 1.4rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        #camera-btn {
+            font-size: 60px;
+            text-align: center;
+            cursor: pointer;
+            margin: 15px 0;
+            transition: transform 0.3s;
+        }
+        
+        #camera-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        #video, #preview {
+            width: 100%;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin: 10px 0;
+            display: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-        .photo-item img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            margin-right: 15px;
+        
+        .btn {
+            display: inline-block;
+            padding: 10px 16px;
+            margin: 6px 4px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
             border-radius: 5px;
+            margin: 15px 0;
+            overflow: hidden;
+            display: none;
         }
-        .photo-info {
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--success));
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--dark);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .toast.success {
+            background: var(--success);
+        }
+        
+        .toast.error {
+            background: var(--danger);
+        }
+        
+        .documents-list {
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .document-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .document-item:last-child {
+            border-bottom: none;
+        }
+        
+        .document-item:hover {
+            background-color: #f0f5ff;
+        }
+        
+        .document-info {
             flex: 1;
         }
-        .photo-actions button {
-            margin-left: 10px;
-            padding: 5px 10px;
-            font-size: 14px;
+        
+        .document-title {
+            font-weight: bold;
+            color: var(--primary);
         }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            margin: 20px 0;
+        
+        .document-date {
+            font-size: 0.85rem;
+            color: var(--gray);
         }
-
-        /* Pagination */
-        .pagination {
+        
+        .document-actions {
             display: flex;
-            justify-content: center;
-            margin: 20px 0;
             gap: 8px;
         }
-        .pagination button {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
+        
+        .search-box {
+            display: flex;
+            margin-bottom: 15px;
         }
-        .pagination button.active {
-            background: #2196F3;
-            color: white;
-            border-color: #2196F3;
+        
+        .search-box input {
+            flex: 1;
+            margin: 0;
+            border-radius: 6px 0 0 6px;
         }
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        
+        .search-box button {
+            border-radius: 0 6px 6px 0;
+            margin: 0;
+        }
+        
+        .filter-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-section select, .filter-section input {
+            flex: 1;
+            margin: 0;
         }
 
-        /* Toast thông báo */
-        #toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 5px;
-            color: white;
+        .document-item.expired .document-title,
+        .document-item.expired .document-date {
+            color: var(--danger);
             font-weight: bold;
-            z-index: 1000;
-            transform: translateX(150%);
-            transition: transform 0.3s ease;
-            white-space: nowrap;
         }
-        #toast.show {
-            transform: translateX(0);
+
+        .document-item.warning .document-title,
+        .document-item.warning .document-date {
+            color: var(--warning);
+            font-weight: bold;
         }
-        .toast-success { background: #4CAF50; }
-        .toast-error { background: #f44336; }
+        
+        .empty-list {
+            text-align: center;
+            padding: 20px;
+            color: var(--gray);
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .app-content {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .list-section {
+                min-width: unset;
+            }
+        }
     </style>
 </head>
 <body>
-
-    <h2>📷 Ứng dụng chụp & lưu ảnh</h2>
-
-    <!-- Biểu tượng camera -->
-    <div id="camera-btn">📷</div>
-
-    <!-- Video stream từ camera -->
-    <video id="video" autoplay playsinline style="display:none;"></video>
-
-    <!-- Nút chụp -->
-    <button id="capture-btn" class="btn" style="display:none;">📸 Chụp ảnh</button>
-
-    <!-- Preview ảnh sau khi chụp hoặc chọn -->
-    <img id="preview" />
-
-    <!-- Nút chọn ảnh từ thư viện -->
-    <button id="select-btn" class="btn">📂 Chọn ảnh từ thiết bị</button>
-    <input type="file" id="file-input" accept="image/*">
-
-    <!-- Form lưu ảnh -->
-    <div id="save-form" style="display:none; margin: 20px 0; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <input type="text" id="photo-name" placeholder="Tên ảnh" required><br><br>
-        <input type="date" id="photo-date" required><br><br>
-        <button id="save-btn" class="btn">💾 Lưu ảnh</button>
-        <button id="delete-btn" class="btn">🗑️ Xóa & làm lại</button>
+    <div class="container">
+        <header>
+            <h1>Quản lý Số Lô & Hạn Dùng Kho Dược</h1>
+            <p class="subtitle">Chụp ảnh và quản lý danh sách sản phẩm</p>
+        </header>
+        
+        <div class="app-content">
+            <div class="camera-section">
+                <h2 class="section-title">Nhập Thông Tin & Chụp Ảnh</h2>
+                
+                <div>
+                    <input type="text" id="product-name" placeholder="Nhập tên thuốc/sản phẩm" required>
+                    <input type="text" id="lot-number" placeholder="Nhập số lô">
+                    <input type="date" id="expiry-date" required>
+                    <input type="number" id="quantity" placeholder="Nhập số lượng" min="1" required>
+                    <input type="text" id="storage-location" placeholder="Nhập vị trí lưu trữ">
+                </div>
+                
+                <div id="camera-btn">📷</div>
+                <video id="video" autoplay playsinline></video>
+                <button id="capture-btn" class="btn" style="display: none;">Chụp Ảnh</button>
+                
+                <img id="preview" />
+                
+                <button id="capture-again" class="btn btn-warning" style="display: none;">Chụp Lại</button>
+                <button id="create-pdf" class="btn btn-success" style="display: none;">Tạo & Lưu</button>
+            </div>
+            
+            <div class="list-section">
+                <h2 class="section-title">Danh Sách Sản Phẩm</h2>
+                
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Tìm kiếm theo tên, số lô...">
+                    <button id="search-btn" class="btn">🔍</button>
+                </div>
+                
+                <div class="filter-section">
+                    <input type="date" id="filter-date">
+                    <select id="sort-by">
+                        <option value="newest">Mới nhất</option>
+                        <option value="oldest">Cũ nhất</option>
+                        <option value="name">Theo tên</option>
+                        <option value="expiry">Hạn dùng</option>
+                    </select>
+                </div>
+                
+                <div class="documents-list" id="documents-list">
+                    <div class="empty-list">Chưa có sản phẩm nào. Hãy thêm sản phẩm đầu tiên!</div>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!-- Tìm kiếm -->
-    <input type="text" id="search-input" placeholder="🔍 Tìm theo tên hoặc ngày (yyyy-mm-dd)...">
-
-    <!-- Nút làm mới -->
-    <button id="refresh-btn" class="btn">🔄 Làm mới danh sách</button>
-
-    <!-- Danh sách ảnh đã lưu -->
-    <h3>📁 Ảnh đã lưu:</h3>
-    <div id="gallery"></div>
-
-    <!-- Phân trang -->
-    <div class="pagination" id="pagination"></div>
-
-    <!-- Loading -->
-    <div id="loading" class="loading" style="display:none;">Đang tải...</div>
-
-    <!-- Toast thông báo -->
-    <div id="toast"></div>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <div class="toast" id="toast"></div>
 
     <script>
-      const firebaseConfig = {
-  apiKey: "AIzaSyDieqE3UHMnT9QP7wzAHZYx1IJDFHgVPJ0",
-  authDomain: "chupanh-970ef.firebaseapp.com",
-  projectId: "chupanh-970ef",
-  storageBucket: "chupanh-970ef.firebasestorage.app",
-  messagingSenderId: "229902106831",
-  appId: "1:229902106831:web:fd3c1c1381466bca1bb7ba",
-  measurementId: "G-4Y1730XHMZ"
-};
-
-        // Khởi tạo Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-
-        let currentStream = null;
-        let capturedImage = null;
-        let allPhotos = []; // lưu toàn bộ ảnh đã tải
-        let currentPage = 1;
-        const itemsPerPage = 5;
-        let isProcessing = false; // tránh double click
-
-        // DOM Elements
+        // DOM elements
         const cameraBtn = document.getElementById('camera-btn');
         const video = document.getElementById('video');
         const captureBtn = document.getElementById('capture-btn');
         const preview = document.getElementById('preview');
-        const selectBtn = document.getElementById('select-btn');
-        const fileInput = document.getElementById('file-input');
-        const saveForm = document.getElementById('save-form');
-        const photoName = document.getElementById('photo-name');
-        const photoDate = document.getElementById('photo-date');
-        const saveBtn = document.getElementById('save-btn');
-        const deleteBtn = document.getElementById('delete-btn');
-        const gallery = document.getElementById('gallery');
+        const captureAgain = document.getElementById('capture-again');
+        const createPdfBtn = document.getElementById('create-pdf');
+        const toast = document.getElementById('toast');
+
+        const productName = document.getElementById('product-name');
+        const lotNumber = document.getElementById('lot-number');
+        const expiryDate = document.getElementById('expiry-date');
+        const quantity = document.getElementById('quantity');
+        const storageLocation = document.getElementById('storage-location');
+
+        const documentsList = document.getElementById('documents-list');
         const searchInput = document.getElementById('search-input');
-        const refreshBtn = document.getElementById('refresh-btn');
-        const paginationEl = document.getElementById('pagination');
-        const loadingEl = document.getElementById('loading');
-        const toastEl = document.getElementById('toast');
+        const searchBtn = document.getElementById('search-btn');
+        const filterDate = document.getElementById('filter-date');
+        const sortBy = document.getElementById('sort-by');
+        
+        let currentStream = null;
+        let capturedImage = null;
+        let allDocuments = [];
 
-        // Hiển thị toast thông báo
-        function showToast(message, isError = false) {
-            toastEl.textContent = message;
-            toastEl.className = isError ? 'toast-error' : 'toast-success';
-            toastEl.classList.add('show');
-            setTimeout(() => {
-                toastEl.classList.remove('show');
-            }, 3000);
-        }
-
-        // Bật camera
+        // Cập nhật Firebase Config với thông tin của bạn
+        const firebaseConfig = {
+            apiKey: "AIzaSyCipZKy7XQkrbMamuxEDd27wGxArWNl6S4",
+            authDomain: "caro-5a283.firebaseapp.com",
+            databaseURL: "https://caro-5a283-default-rtdb.firebaseio.com",
+            projectId: "caro-5a283",
+            storageBucket: "caro-5a283.firebasestorage.app",
+            messagingSenderId: "143382348276",
+            appId: "1:143382348276:web:901f4135b61fa0f774b9a1",
+            measurementId: "G-Q53N91E2BN"
+        };
+        
+        // Khởi tạo Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const documentsRef = db.ref('pharmaceuticals');
+        
+        // Set current date as default
+        expiryDate.valueAsDate = new Date();
+        filterDate.valueAsDate = new Date();
+        
+        // Initialize - load saved data from Firebase
+        window.addEventListener('DOMContentLoaded', () => {
+            loadDocuments();
+        });
+        
+        // Camera functionality
         cameraBtn.addEventListener('click', async () => {
             try {
+                showToast('Đang khởi động camera...', 'info');
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
                 currentStream = stream;
                 video.style.display = 'block';
                 captureBtn.style.display = 'block';
                 cameraBtn.style.display = 'none';
+                showToast('Camera đã sẵn sàng!', 'success');
             } catch (err) {
-                showToast('Không thể truy cập camera: ' + err.message, true);
+                showToast('Không thể truy cập camera: ' + err.message, 'error');
+                console.error('Camera error:', err);
             }
         });
-
-        // Chụp ảnh
+        
         captureBtn.addEventListener('click', () => {
+            if (!productName.value || !expiryDate.value) {
+                showToast('Vui lòng nhập đầy đủ tên và hạn dùng!', 'error');
+                return;
+            }
+            
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             capturedImage = canvas.toDataURL('image/png');
-
-            // Dừng camera
+            
+            // Stop camera
             if (currentStream) {
                 currentStream.getTracks().forEach(track => track.stop());
             }
+            
             video.style.display = 'none';
             captureBtn.style.display = 'none';
-
-            // Hiển thị ảnh
+            
+            // Show preview
             preview.src = capturedImage;
             preview.style.display = 'block';
-            saveForm.style.display = 'block';
+            createPdfBtn.style.display = 'block';
+            captureAgain.style.display = 'block';
+            
+            showToast('Ảnh đã được chụp!', 'success');
         });
-
-        // Chọn ảnh từ thiết bị
-        selectBtn.addEventListener('click', () => {
-            fileInput.click();
+        
+        captureAgain.addEventListener('click', () => {
+            resetCameraUI();
         });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    capturedImage = ev.target.result;
-                    preview.src = capturedImage;
-                    preview.style.display = 'block';
-                    saveForm.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Lưu ảnh
-        saveBtn.addEventListener('click', async () => {
-            if (isProcessing) return;
-            const name = photoName.value.trim();
-            const date = photoDate.value;
-            if (!name || !date || !capturedImage) {
-                showToast('Vui lòng nhập đủ thông tin!', true);
+        
+        // Create PDF and save data
+        createPdfBtn.addEventListener('click', async () => {
+            if (!productName.value || !expiryDate.value || !quantity.value) {
+                showToast('Vui lòng nhập đầy đủ Tên thuốc, Hạn dùng và Số lượng!', 'error');
                 return;
             }
 
-            isProcessing = true;
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'Đang lưu...';
-
-            try {
-                // Upload ảnh
-                loadingEl.style.display = 'block';
-                const storageRef = storage.ref();
-                const imageRef = storageRef.child(`images/${Date.now()}.png`);
-                const response = await fetch(capturedImage);
-                const blob = await response.blob();
-                await imageRef.put(blob);
-                const imageUrl = await imageRef.getDownloadURL();
-
-                // Lưu metadata
-                await db.collection('photos').add({
-                    name,
-                    date,
-                    imageUrl,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                showToast('✅ Lưu ảnh thành công!');
-                resetForm();
-                loadGallery(); // Tải lại danh sách
-            } catch (err) {
-                console.error(err);
-                showToast('❌ Lỗi khi lưu ảnh: ' + err.message, true);
-            } finally {
-                isProcessing = false;
-                saveBtn.disabled = false;
-                saveBtn.textContent = '💾 Lưu ảnh';
-                loadingEl.style.display = 'none';
-            }
+            const documentData = {
+                productName: productName.value,
+                lotNumber: lotNumber.value,
+                expiryDate: expiryDate.value,
+                quantity: quantity.value,
+                storageLocation: storageLocation.value,
+                captureDate: new Date().toISOString(),
+                imageDataUrl: capturedImage
+            };
+            
+            saveDocument(documentData);
+            
+            resetCameraUI();
         });
-
-        // Xóa & làm lại
-        deleteBtn.addEventListener('click', resetForm);
-
-        function resetForm() {
-            capturedImage = null;
-            preview.style.display = 'none';
-            saveForm.style.display = 'none';
-            photoName.value = '';
-            photoDate.value = '';
-            cameraBtn.style.display = 'block';
+        
+        function saveDocument(documentData) {
+            const newDocRef = documentsRef.push();
+            newDocRef.set(documentData)
+                .then(() => {
+                    showToast('Tài liệu đã được lưu thành công!', 'success');
+                })
+                .catch(error => {
+                    showToast('Lỗi khi lưu tài liệu: ' + error.message, 'error');
+                    console.error('Lỗi khi ghi dữ liệu lên Firebase:', error);
+                });
         }
-
-        // Tải danh sách ảnh (có hỗ trợ tìm kiếm)
-        async function loadGallery(searchQuery = '') {
-            if (isProcessing) return;
-            isProcessing = true;
-            loadingEl.style.display = 'block';
-            gallery.innerHTML = '';
-
-            try {
-                let query = db.collection('photos').orderBy('createdAt', 'desc');
-
-                if (searchQuery) {
-                    // Tìm theo tên (không phân biệt hoa thường)
-                    query = query.where('name', '>=', searchQuery.toLowerCase())
-                                .where('name', '<=', searchQuery.toLowerCase() + '\uf8ff');
-                    // Hoặc tìm theo ngày nếu nhập đúng định dạng yyyy-mm-dd
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(searchQuery)) {
-                        query = db.collection('photos').where('date', '==', searchQuery).orderBy('createdAt', 'desc');
+        
+        function loadDocuments() {
+            documentsRef.on('value', (snapshot) => {
+                try {
+                    const data = snapshot.val();
+                    const docsArray = [];
+                    if (data) {
+                        for (let key in data) {
+                            docsArray.push({
+                                id: key,
+                                ...data[key]
+                            });
+                        }
                     }
+                    allDocuments = docsArray;
+                    filterDocuments();
+                } catch (error) {
+                    console.error('Lỗi khi tải danh sách tài liệu từ Firebase:', error);
+                    showToast('Lỗi khi tải danh sách tài liệu', 'error');
                 }
-
-                const snapshot = await query.get();
-                allPhotos = [];
-                snapshot.forEach(doc => {
-                    allPhotos.push({ id: doc.id, ...doc.data() });
-                });
-
-                currentPage = 1;
-                renderGallery();
-                setupPagination();
-            } catch (err) {
-                showToast('❌ Lỗi tải danh sách: ' + err.message, true);
-            } finally {
-                isProcessing = false;
-                loadingEl.style.display = 'none';
-            }
+            });
         }
 
-        // Render ảnh theo trang
-        function renderGallery() {
-            const start = (currentPage - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
-            const pagePhotos = allPhotos.slice(start, end);
+        function filterDocuments() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filterDateValue = filterDate.value;
+            const sortValue = sortBy.value;
+            
+            let filteredDocs = allDocuments.filter(doc => {
+                const matchesSearch = 
+                    doc.productName.toLowerCase().includes(searchTerm) || 
+                    (doc.lotNumber && doc.lotNumber.toLowerCase().includes(searchTerm));
 
-            gallery.innerHTML = '';
-            if (pagePhotos.length === 0) {
-                gallery.innerHTML = '<p>Không có ảnh nào.</p>';
+                const matchesDate = filterDateValue ? doc.expiryDate === filterDateValue : true;
+                
+                return matchesSearch && matchesDate;
+            });
+            
+            // Sort documents
+            switch(sortValue) {
+                case 'newest':
+                    filteredDocs.sort((a, b) => new Date(b.captureDate) - new Date(a.captureDate));
+                    break;
+                case 'oldest':
+                    filteredDocs.sort((a, b) => new Date(a.captureDate) - new Date(b.captureDate));
+                    break;
+                case 'name':
+                    filteredDocs.sort((a, b) => a.productName.localeCompare(b.productName));
+                    break;
+                case 'expiry':
+                    filteredDocs.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+                    break;
+            }
+            
+            if (filteredDocs.length === 0) {
+                documentsList.innerHTML = '<div class="empty-list">Không tìm thấy tài liệu nào phù hợp</div>';
                 return;
             }
+            
+            documentsList.innerHTML = '';
+            const today = new Date();
+            const warningPeriodInDays = 90;
 
-            pagePhotos.forEach(photo => {
-                const item = document.createElement('div');
-                item.className = 'photo-item';
-                const displayDate = photo.date ? photo.date : 'Không có ngày';
-                item.innerHTML = `
-                    <img src="${photo.imageUrl}" alt="${photo.name}" onerror="this.src='https://via.placeholder.com/80?text=Error'">
-                    <div class="photo-info">
-                        <strong>${photo.name}</strong><br>
-                        Ngày: ${displayDate}
+            filteredDocs.forEach(doc => {
+                const docElement = document.createElement('div');
+                docElement.className = 'document-item';
+
+                const expiry = new Date(doc.expiryDate);
+                const diffTime = expiry - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays <= 0) {
+                    docElement.classList.add('expired');
+                } else if (diffDays <= warningPeriodInDays) {
+                    docElement.classList.add('warning');
+                }
+                
+                docElement.innerHTML = `
+                    <div class="document-info">
+                        <div class="document-title">${doc.productName} - Số Lô: ${doc.lotNumber || 'N/A'}</div>
+                        <div class="document-date">
+                            Hạn dùng: ${doc.expiryDate} | SL: ${doc.quantity} | Vị trí: ${doc.storageLocation || 'N/A'}
+                        </div>
                     </div>
-                    <div class="photo-actions">
-                        <button onclick="deletePhoto('${photo.id}')">🗑️ Xóa</button>
+                    <div class="document-actions">
+                        <button class="btn btn-success" onclick="downloadDocument('${doc.id}')">Tải</button>
+                        <button class="btn" onclick="viewDocument('${doc.id}')">Xem</button>
+                        <button class="btn btn-danger" onclick="deleteDocument('${doc.id}')">Xóa</button>
                     </div>
                 `;
-                gallery.appendChild(item);
+                
+                documentsList.appendChild(docElement);
             });
         }
-
-        // Thiết lập phân trang
-        function setupPagination() {
-            const totalPages = Math.ceil(allPhotos.length / itemsPerPage);
-            paginationEl.innerHTML = '';
-
-            if (totalPages <= 1) return;
-
-            // Nút trang trước
-            const prevBtn = document.createElement('button');
-            prevBtn.textContent = '❮';
-            prevBtn.disabled = currentPage === 1;
-            prevBtn.addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    renderGallery();
-                    setupPagination();
-                }
-            });
-            paginationEl.appendChild(prevBtn);
-
-            // Các nút trang
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === currentPage) {
-                    const btn = document.createElement('button');
-                    btn.textContent = i;
-                    btn.className = 'active';
-                    btn.disabled = true;
-                    paginationEl.appendChild(btn);
-                } else {
-                    const btn = document.createElement('button');
-                    btn.textContent = i;
-                    btn.addEventListener('click', () => {
-                        currentPage = i;
-                        renderGallery();
-                        setupPagination();
-                    });
-                    paginationEl.appendChild(btn);
-                }
+        
+        function downloadDocument(id) {
+            const doc = allDocuments.find(d => d.id === id);
+            if (!doc) {
+                showToast('Không tìm thấy tài liệu để tải xuống.', 'error');
+                return;
             }
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            
+            pdf.setFontSize(16);
+            pdf.text(`Thông tin sản phẩm: ${doc.productName}`, 105, 15, { align: 'center' });
+            pdf.setFontSize(12);
+            pdf.text(`Số Lô: ${doc.lotNumber || 'N/A'}`, 15, 25);
+            pdf.text(`Hạn Dùng: ${doc.expiryDate}`, 15, 35);
+            pdf.text(`Số Lượng: ${doc.quantity}`, 15, 45);
+            pdf.text(`Vị Trí: ${doc.storageLocation || 'N/A'}`, 15, 55);
 
-            // Nút trang sau
-            const nextBtn = document.createElement('button');
-            nextBtn.textContent = '❯';
-            nextBtn.disabled = currentPage === totalPages;
-            nextBtn.addEventListener('click', () => {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    renderGallery();
-                    setupPagination();
-                }
-            });
-            paginationEl.appendChild(nextBtn);
+            pdf.addImage(doc.imageDataUrl, 'PNG', 15, 65, 180, 120);
+
+            const fileName = `product_${doc.productName.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+            pdf.save(fileName);
+            showToast('Đang tải xuống PDF...', 'info');
         }
-
-        // Xóa ảnh
-        window.deletePhoto = async (id) => {
-            if (isProcessing) return;
-            if (!confirm('Bạn có chắc muốn xóa ảnh này?')) return;
-
-            isProcessing = true;
-            loadingEl.style.display = 'block';
-
-            try {
-                const doc = await db.collection('photos').doc(id).get();
-                const data = doc.data();
-                const imageRef = storage.refFromURL(data.imageUrl);
-                await imageRef.delete();
-                await db.collection('photos').doc(id).delete();
-
-                showToast('✅ Đã xóa ảnh!');
-                loadGallery(searchInput.value); // Tải lại theo bộ lọc hiện tại
-            } catch (err) {
-                showToast('❌ Lỗi khi xóa: ' + err.message, true);
-            } finally {
-                isProcessing = false;
-                loadingEl.style.display = 'none';
+        
+        function viewDocument(id) {
+            const doc = allDocuments.find(d => d.id === id);
+            if (!doc) {
+                showToast('Không tìm thấy tài liệu để xem.', 'error');
+                return;
             }
-        };
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            
+            pdf.setFontSize(16);
+            pdf.text(`Thông tin sản phẩm: ${doc.productName}`, 105, 15, { align: 'center' });
+            pdf.setFontSize(12);
+            pdf.text(`Số Lô: ${doc.lotNumber || 'N/A'}`, 15, 25);
+            pdf.text(`Hạn Dùng: ${doc.expiryDate}`, 15, 35);
+            pdf.text(`Số Lượng: ${doc.quantity}`, 15, 45);
+            pdf.text(`Vị Trí: ${doc.storageLocation || 'N/A'}`, 15, 55);
 
-        // Tìm kiếm
-        let searchTimeout;
-        searchInput.addEventListener('input', () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                loadGallery(searchInput.value.trim());
-            }, 500); // debounce 0.5s
+            pdf.addImage(doc.imageDataUrl, 'PNG', 15, 65, 180, 120);
+            
+            const pdfDataUrl = pdf.output('datauristring');
+
+            const newWindow = window.open();
+            newWindow.document.write(`
+                <html>
+                    <head><title>${doc.productName}</title></head>
+                    <body style="margin: 0;">
+                        <embed width="100%" height="100%" src="${pdfDataUrl}" type="application/pdf">
+                    </body>
+                </html>
+            `);
+        }
+        
+        function deleteDocument(id) {
+            if (!confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) {
+                return;
+            }
+            
+            documentsRef.child(id).remove()
+                .then(() => {
+                    showToast('Đã xóa tài liệu thành công!', 'success');
+                })
+                .catch(error => {
+                    showToast('Lỗi khi xóa tài liệu: ' + error.message, 'error');
+                    console.error('Lỗi khi xóa dữ liệu trên Firebase:', error);
+                });
+        }
+        
+        searchBtn.addEventListener('click', () => {
+            filterDocuments();
         });
-
-        // Làm mới danh sách
-        refreshBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            loadGallery();
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                filterDocuments();
+            }
         });
-
-        // Tự động load lần đầu
-        loadGallery();
+        
+        filterDate.addEventListener('change', () => {
+            filterDocuments();
+        });
+        
+        sortBy.addEventListener('change', () => {
+            filterDocuments();
+        });
+        
+        function resetCameraUI() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            
+            video.style.display = 'none';
+            captureBtn.style.display = 'none';
+            preview.style.display = 'none';
+            createPdfBtn.style.display = 'none';
+            captureAgain.style.display = 'none';
+            cameraBtn.style.display = 'block';
+            
+            productName.value = '';
+            lotNumber.value = '';
+            expiryDate.valueAsDate = new Date();
+            quantity.value = '';
+            storageLocation.value = '';
+        }
+        
+        function showToast(message, type = 'info') {
+            toast.textContent = message;
+            toast.className = 'toast show';
+            
+            if (type === 'success') {
+                toast.classList.add('success');
+            } else if (type === 'error') {
+                toast.classList.add('error');
+            }
+            
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
     </script>
 </body>
 </html>
