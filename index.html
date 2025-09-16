@@ -442,6 +442,13 @@
             background: #f0f5ff;
         }
         
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+            gap: 10px;
+        }
+        
         @media (max-width: 768px) {
             .app-content {
                 flex-direction: column;
@@ -503,6 +510,9 @@
                 <input type="text" id="storage-location" placeholder="Nhập vị trí lưu trữ">
                 
                 <div id="camera-btn">📷</div>
+                <div class="camera-controls" id="camera-controls" style="display: none;">
+                    <button id="switch-camera" class="btn">🔄 Đổi Camera</button>
+                </div>
                 <video id="video" autoplay playsinline></video>
                 <button id="capture-btn" class="btn" style="display: none;">Chụp Ảnh</button>
                 
@@ -573,6 +583,8 @@
         const toggleExcelBtn = document.getElementById('toggle-excel');
         const excelSection = document.getElementById('excel-section');
         const mainContent = document.getElementById('main-content');
+        const switchCameraBtn = document.getElementById('switch-camera');
+        const cameraControls = document.getElementById('camera-controls');
 
         const productName = document.getElementById('product-name');
         const lotNumber = document.getElementById('lot-number');
@@ -592,6 +604,8 @@
         let productNames = [];
         let currentFileToDelete = null;
         let isExcelSectionVisible = false;
+        let availableCameras = [];
+        let currentCameraIndex = 0;
 
         // Cập nhật Firebase Config với thông tin của bạn
         const firebaseConfig = {
@@ -619,6 +633,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             loadDocuments();
             loadExcelFiles();
+            loadProductNamesFromDocuments();
         });
         
         // Toggle Excel section
@@ -659,9 +674,28 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     
-                    // Get first worksheet
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    // Get all worksheets
+                    const jsonData = [];
+                    workbook.SheetNames.forEach(sheetName => {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        // Process headers and data
+                        if (sheetData.length > 0) {
+                            const headers = sheetData[0];
+                            for (let i = 1; i < sheetData.length; i++) {
+                                const row = {};
+                                for (let j = 0; j < headers.length; j++) {
+                                    if (j < sheetData[i].length) {
+                                        row[headers[j]] = sheetData[i][j];
+                                    }
+                                }
+                                if (Object.keys(row).length > 0) {
+                                    jsonData.push(row);
+                                }
+                            }
+                        }
+                    });
                     
                     if (jsonData.length === 0) {
                         showToast('File Excel không có dữ liệu', 'error');
@@ -763,7 +797,9 @@
                 if (file.data && Array.isArray(file.data)) {
                     file.data.forEach(row => {
                         // Try to find product name in common columns
-                        const productName = row['Tên thuốc'] || row['Tên sản phẩm'] || row['Tên'] || row['Sản phẩm'] || row['Product Name'] || row['Product'];
+                        const productName = row['Tên thuốc'] || row['Tên sản phẩm'] || row['Tên'] || 
+                                           row['Sản phẩm'] || row['Product Name'] || row['Product'] ||
+                                           row['Tên hàng'] || row['Tên sản phẩm'] || row['Thuốc'];
                         
                         if (productName && !productNames.includes(productName)) {
                             productNames.push(productName);
@@ -773,6 +809,10 @@
             });
             
             // Also add product names from existing documents
+            loadProductNamesFromDocuments();
+        }
+        
+        function loadProductNamesFromDocuments() {
             allDocuments.forEach(doc => {
                 if (doc.productName && !productNames.includes(doc.productName)) {
                     productNames.push(doc.productName);
@@ -793,15 +833,24 @@
                     <h3>Dữ liệu từ file: ${fileData.fileName}</h3>
                     <div style="max-height: 400px; overflow-y: auto;">
                         <table style="width: 100%; border-collapse: collapse;">
+                `;
+                
+                // Get headers from all possible keys
+                const headers = new Set();
+                fileData.data.forEach(row => {
+                    Object.keys(row).forEach(key => headers.add(key));
+                });
+                
+                const headerArray = Array.from(headers);
+                
+                previewHTML += `
                             <thead>
                                 <tr style="background-color: #f0f5ff;">
                 `;
                 
-                // Get headers from first row
-                const firstRow = fileData.data[0];
-                for (let key in firstRow) {
-                    previewHTML += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${key}</th>`;
-                }
+                headerArray.forEach(header => {
+                    previewHTML += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${header}</th>`;
+                });
                 
                 previewHTML += `
                                 </tr>
@@ -809,13 +858,13 @@
                             <tbody>
                 `;
                 
-                // Add rows (limit to 10 for preview)
-                const rowsToShow = fileData.data.slice(0, 10);
+                // Add rows (limit to 20 for preview)
+                const rowsToShow = fileData.data.slice(0, 20);
                 rowsToShow.forEach(row => {
                     previewHTML += `<tr>`;
-                    for (let key in firstRow) {
-                        previewHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${row[key] || ''}</td>`;
-                    }
+                    headerArray.forEach(header => {
+                        previewHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${row[header] || ''}</td>`;
+                    });
                     previewHTML += `</tr>`;
                 });
                 
@@ -913,7 +962,9 @@
         function closeAllLists() {
             const items = document.getElementsByClassName('autocomplete-items');
             for (let i = 0; i < items.length; i++) {
-                items[i].parentNode.removeChild(items[i]);
+                if (items[i].parentNode) {
+                    items[i].parentNode.removeChild(items[i]);
+                }
             }
         }
         
@@ -925,18 +976,75 @@
         cameraBtn.addEventListener('click', async () => {
             try {
                 showToast('Đang khởi động camera...', 'info');
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-                currentStream = stream;
+                
+                // Get available cameras
+                await getAvailableCameras();
+                
+                if (availableCameras.length === 0) {
+                    showToast('Không tìm thấy camera', 'error');
+                    return;
+                }
+                
+                // Start with the first camera
+                await startCamera(availableCameras[currentCameraIndex].deviceId);
+                
                 video.style.display = 'block';
                 captureBtn.style.display = 'block';
                 cameraBtn.style.display = 'none';
+                
+                // Show camera controls if multiple cameras available
+                if (availableCameras.length > 1) {
+                    cameraControls.style.display = 'flex';
+                }
+                
                 showToast('Camera đã sẵn sàng!', 'success');
             } catch (err) {
                 showToast('Không thể truy cập camera: ' + err.message, 'error');
                 console.error('Camera error:', err);
             }
         });
+        
+        // Switch camera functionality
+        switchCameraBtn.addEventListener('click', async () => {
+            if (availableCameras.length <= 1) return;
+            
+            // Switch to next camera
+            currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+            
+            // Stop current stream
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Start new camera
+            try {
+                await startCamera(availableCameras[currentCameraIndex].deviceId);
+                showToast('Đã chuyển camera', 'success');
+            } catch (err) {
+                showToast('Không thể chuyển camera: ' + err.message, 'error');
+                console.error('Camera switch error:', err);
+            }
+        });
+        
+        async function getAvailableCameras() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                availableCameras = devices.filter(device => device.kind === 'videoinput');
+            } catch (err) {
+                console.error('Error enumerating cameras:', err);
+                availableCameras = [];
+            }
+        }
+        
+        async function startCamera(deviceId = null) {
+            const constraints = {
+                video: deviceId ? { deviceId: { exact: deviceId } } : true
+            };
+            
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+            currentStream = stream;
+        }
         
         captureBtn.addEventListener('click', () => {
             if (!productName.value || !expiryDate.value) {
@@ -958,6 +1066,7 @@
             
             video.style.display = 'none';
             captureBtn.style.display = 'none';
+            cameraControls.style.display = 'none';
             
             // Show preview
             preview.src = capturedImage;
@@ -969,140 +1078,176 @@
         });
         
         captureAgain.addEventListener('click', () => {
-            resetCameraUI();
+            preview.style.display = 'none';
+            createPdfBtn.style.display = 'none';
+            captureAgain.style.display = 'none';
+            cameraBtn.style.display = 'block';
+            
+            // Clear captured image
+            capturedImage = null;
         });
         
-        // Create PDF and save data
-        createPdfBtn.addEventListener('click', async () => {
-            if (!productName.value || !expiryDate.value || !quantity.value) {
-                showToast('Vui lòng nhập đầy đủ Tên thuốc, Hạn dùng và Số lượng!', 'error');
+        createPdfBtn.addEventListener('click', () => {
+            if (!capturedImage) {
+                showToast('Vui lòng chụp ảnh trước!', 'error');
                 return;
             }
-
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add image
+            doc.addImage(capturedImage, 'PNG', 15, 15, 180, 120);
+            
+            // Add text information
+            doc.setFontSize(16);
+            doc.text('THÔNG TIN SẢN PHẨM', 105, 145, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.text(`Tên sản phẩm: ${productName.value}`, 20, 155);
+            doc.text(`Số lô: ${lotNumber.value || 'N/A'}`, 20, 165);
+            doc.text(`Hạn dùng: ${new Date(expiryDate.value).toLocaleDateString('vi-VN')}`, 20, 175);
+            doc.text(`Số lượng: ${quantity.value || 1}`, 20, 185);
+            doc.text(`Vị trí lưu trữ: ${storageLocation.value || 'N/A'}`, 20, 195);
+            
+            // Add timestamp
+            const now = new Date();
+            doc.setFontSize(10);
+            doc.text(`Tạo ngày: ${now.toLocaleString('vi-VN')}`, 105, 205, { align: 'center' });
+            
+            // Save to Firebase
             const documentData = {
                 productName: productName.value,
                 lotNumber: lotNumber.value,
                 expiryDate: expiryDate.value,
                 quantity: quantity.value,
                 storageLocation: storageLocation.value,
-                captureDate: new Date().toISOString(),
-                imageDataUrl: capturedImage
+                image: capturedImage,
+                createdAt: now.toISOString()
             };
             
-            saveDocument(documentData);
-            
-            resetCameraUI();
-        });
-        
-        function saveDocument(documentData) {
-            const newDocRef = documentsRef.push();
-            newDocRef.set(documentData)
+            documentsRef.push(documentData)
                 .then(() => {
-                    showToast('Tài liệu đã được lưu thành công!', 'success');
+                    showToast('Đã lưu thông tin thành công!', 'success');
                     
-                    // Add to product names if not already there
-                    if (!productNames.includes(documentData.productName)) {
-                        productNames.push(documentData.productName);
-                    }
+                    // Reset form
+                    productName.value = '';
+                    lotNumber.value = '';
+                    expiryDate.valueAsDate = new Date();
+                    quantity.value = '';
+                    storageLocation.value = '';
+                    
+                    preview.style.display = 'none';
+                    createPdfBtn.style.display = 'none';
+                    captureAgain.style.display = 'none';
+                    cameraBtn.style.display = 'block';
+                    
+                    capturedImage = null;
                 })
                 .catch(error => {
-                    showToast('Lỗi khi lưu tài liệu: ' + error.message, 'error');
-                    console.error('Lỗi khi ghi dữ liệu lên Firebase:', error);
+                    showToast('Lỗi khi lưu dữ liệu: ' + error.message, 'error');
+                    console.error('Save error:', error);
                 });
-        }
+        });
         
+        // Load documents from Firebase
         function loadDocuments() {
             documentsRef.on('value', (snapshot) => {
                 try {
                     const data = snapshot.val();
-                    const docsArray = [];
+                    allDocuments = [];
+                    
                     if (data) {
                         for (let key in data) {
-                            docsArray.push({
+                            allDocuments.push({
                                 id: key,
                                 ...data[key]
                             });
                         }
                     }
-                    allDocuments = docsArray;
-                    filterDocuments();
                     
-                    // Update product names with documents
-                    allDocuments.forEach(doc => {
-                        if (doc.productName && !productNames.includes(doc.productName)) {
-                            productNames.push(doc.productName);
-                        }
-                    });
+                    updateDocumentsList(allDocuments);
+                    loadProductNamesFromDocuments();
                 } catch (error) {
-                    console.error('Lỗi khi tải danh sách tài liệu từ Firebase:', error);
-                    showToast('Lỗi khi tải danh sách tài liệu', 'error');
+                    console.error('Lỗi khi tải danh sách sản phẩm:', error);
+                    showToast('Lỗi khi tải danh sách sản phẩm', 'error');
                 }
             });
         }
-
-        function filterDocuments() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const filterDateValue = filterDate.value;
-            const sortValue = sortBy.value;
+        
+        function updateDocumentsList(documents) {
+            if (documents.length === 0) {
+                documentsList.innerHTML = '<div class="empty-list">Chưa có sản phẩm nào. Hãy thêm sản phẩm đầu tiên!</div>';
+                return;
+            }
             
-            let filteredDocs = allDocuments.filter(doc => {
-                const matchesSearch = 
-                    doc.productName.toLowerCase().includes(searchTerm) || 
-                    (doc.lotNumber && doc.lotNumber.toLowerCase().includes(searchTerm));
-
-                const matchesDate = filterDateValue ? doc.expiryDate === filterDateValue : true;
-                
-                return matchesSearch && matchesDate;
-            });
+            // Filter and sort
+            let filteredDocs = [...documents];
             
-            // Sort documents
-            switch(sortValue) {
-                case 'newest':
-                    filteredDocs.sort((a, b) => new Date(b.captureDate) - new Date(a.captureDate));
-                    break;
+            // Search filter
+            if (searchInput.value) {
+                const searchTerm = searchInput.value.toLowerCase();
+                filteredDocs = filteredDocs.filter(doc => 
+                    doc.productName?.toLowerCase().includes(searchTerm) ||
+                    doc.lotNumber?.toLowerCase().includes(searchTerm) ||
+                    doc.storageLocation?.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Date filter
+            if (filterDate.value) {
+                const filterDateValue = new Date(filterDate.value);
+                filteredDocs = filteredDocs.filter(doc => {
+                    const docDate = new Date(doc.expiryDate);
+                    return docDate.toDateString() === filterDateValue.toDateString();
+                });
+            }
+            
+            // Sort
+            switch (sortBy.value) {
                 case 'oldest':
-                    filteredDocs.sort((a, b) => new Date(a.captureDate) - new Date(b.captureDate));
+                    filteredDocs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
                     break;
                 case 'name':
-                    filteredDocs.sort((a, b) => a.productName.localeCompare(b.productName));
+                    filteredDocs.sort((a, b) => (a.productName || '').localeCompare(b.productName || ''));
                     break;
                 case 'expiry':
                     filteredDocs.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
                     break;
+                default: // newest
+                    filteredDocs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             }
             
-            if (filteredDocs.length === 0) {
-                documentsList.innerHTML = '<div class="empty-list">Không tìm thấy tài liệu nào phù hợp</div>';
-                return;
-            }
-            
+            // Update UI
             documentsList.innerHTML = '';
-            const today = new Date();
-            const warningPeriodInDays = 90;
-
+            
             filteredDocs.forEach(doc => {
                 const docElement = document.createElement('div');
                 docElement.className = 'document-item';
-
-                const expiry = new Date(doc.expiryDate);
-                const diffTime = expiry - today;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
-                if (diffDays <= 0) {
+                const expiryDate = new Date(doc.expiryDate);
+                const createdDate = new Date(doc.createdAt);
+                const today = new Date();
+                const daysUntilExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+                
+                // Add warning/expired classes
+                if (daysUntilExpiry < 0) {
                     docElement.classList.add('expired');
-                } else if (diffDays <= warningPeriodInDays) {
+                } else if (daysUntilExpiry < 30) {
                     docElement.classList.add('warning');
                 }
                 
                 docElement.innerHTML = `
                     <div class="document-info">
-                        <div class="document-title">${doc.productName} - Số Lô: ${doc.lotNumber || 'N/A'}</div>
+                        <div class="document-title">${doc.productName || 'Không có tên'}</div>
                         <div class="document-date">
-                            Hạn dùng: ${doc.expiryDate} | SL: ${doc.quantity} | Vị trí: ${doc.storageLocation || 'N/A'}
+                            Số lô: ${doc.lotNumber || 'N/A'} | 
+                            Hạn dùng: ${expiryDate.toLocaleDateString('vi-VN')} | 
+                            SL: ${doc.quantity || 1} | 
+                            Vị trí: ${doc.storageLocation || 'N/A'}
                         </div>
                     </div>
                     <div class="document-actions">
-                        <button class="btn btn-success" onclick="downloadDocument('${doc.id}')">Tải</button>
                         <button class="btn" onclick="viewDocument('${doc.id}')">Xem</button>
                         <button class="btn btn-danger" onclick="deleteDocument('${doc.id}')">Xóa</button>
                     </div>
@@ -1112,8 +1257,8 @@
             });
         }
         
-        function viewDocument(docId) {
-            const doc = allDocuments.find(d => d.id === docId);
+        function viewDocument(id) {
+            const doc = allDocuments.find(d => d.id === id);
             if (!doc) return;
             
             const newWindow = window.open();
@@ -1123,107 +1268,68 @@
                         <title>Chi tiết sản phẩm: ${doc.productName}</title>
                         <style>
                             body { font-family: Arial, sans-serif; padding: 20px; }
-                            .document-details { max-width: 600px; margin: 0 auto; }
-                            .document-image { max-width: 100%; border: 1px solid #ddd; margin-top: 10px; }
+                            .product-info { margin-bottom: 20px; }
+                            .product-info div { margin-bottom: 8px; }
+                            .product-image { max-width: 100%; height: auto; margin-top: 20px; }
                         </style>
                     </head>
                     <body>
-                        <div class="document-details">
-                            <h2>${doc.productName}</h2>
-                            <p><strong>Số lô:</strong> ${doc.lotNumber || 'N/A'}</p>
-                            <p><strong>Hạn dùng:</strong> ${doc.expiryDate}</p>
-                            <p><strong>Số lượng:</strong> ${doc.quantity}</p>
-                            <p><strong>Vị trí lưu trữ:</strong> ${doc.storageLocation || 'N/A'}</p>
-                            <p><strong>Ngày tạo:</strong> ${new Date(doc.captureDate).toLocaleDateString('vi-VN')}</p>
-                            <img src="${doc.imageDataUrl}" class="document-image" alt="Ảnh sản phẩm">
+                        <h2>Thông tin sản phẩm</h2>
+                        <div class="product-info">
+                            <div><strong>Tên sản phẩm:</strong> ${doc.productName || 'N/A'}</div>
+                            <div><strong>Số lô:</strong> ${doc.lotNumber || 'N/A'}</div>
+                            <div><strong>Hạn dùng:</strong> ${new Date(doc.expiryDate).toLocaleDateString('vi-VN')}</div>
+                            <div><strong>Số lượng:</strong> ${doc.quantity || 1}</div>
+                            <div><strong>Vị trí lưu trữ:</strong> ${doc.storageLocation || 'N/A'}</div>
+                            <div><strong>Ngày tạo:</strong> ${new Date(doc.createdAt).toLocaleString('vi-VN')}</div>
                         </div>
+                        <img src="${doc.image}" class="product-image" alt="Ảnh sản phẩm">
                     </body>
                 </html>
             `);
         }
         
-        function downloadDocument(docId) {
-            const doc = allDocuments.find(d => d.id === docId);
-            if (!doc) return;
-            
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
-            
-            // Add title
-            pdf.setFontSize(18);
-            pdf.text('THÔNG TIN SẢN PHẨM DƯỢC', 105, 20, { align: 'center' });
-            
-            // Add content
-            pdf.setFontSize(12);
-            pdf.text(`Tên sản phẩm: ${doc.productName}`, 20, 40);
-            pdf.text(`Số lô: ${doc.lotNumber || 'N/A'}`, 20, 50);
-            pdf.text(`Hạn dùng: ${doc.expiryDate}`, 20, 60);
-            pdf.text(`Số lượng: ${doc.quantity}`, 20, 70);
-            pdf.text(`Vị trí lưu trữ: ${doc.storageLocation || 'N/A'}`, 20, 80);
-            pdf.text(`Ngày tạo: ${new Date(doc.captureDate).toLocaleDateString('vi-VN')}`, 20, 90);
-            
-            // Add image
-            if (doc.imageDataUrl) {
-                const imgProps = pdf.getImageProperties(doc.imageDataUrl);
-                const imgWidth = 100;
-                const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-                pdf.addImage(doc.imageDataUrl, 'PNG', 20, 100, imgWidth, imgHeight);
-            }
-            
-            // Save the PDF
-            pdf.save(`${doc.productName}_${doc.lotNumber || 'unknown'}.pdf`);
-            showToast('Đã tải xuống tài liệu PDF!', 'success');
-        }
-        
-        function deleteDocument(docId) {
-            if (confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) {
-                documentsRef.child(docId).remove()
+        function deleteDocument(id) {
+            if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
+                documentsRef.child(id).remove()
                     .then(() => {
-                        showToast('Tài liệu đã được xóa!', 'success');
+                        showToast('Đã xóa sản phẩm thành công!', 'success');
                     })
                     .catch(error => {
-                        showToast('Lỗi khi xóa tài liệu: ' + error.message, 'error');
-                        console.error('Lỗi khi xóa tài liệu:', error);
+                        showToast('Lỗi khi xóa sản phẩm: ' + error.message, 'error');
+                        console.error('Delete error:', error);
                     });
             }
         }
         
         // Search and filter functionality
-        searchInput.addEventListener('keyup', filterDocuments);
-        searchBtn.addEventListener('click', filterDocuments);
-        filterDate.addEventListener('change', filterDocuments);
-        sortBy.addEventListener('change', filterDocuments);
+        searchInput.addEventListener('keyup', () => {
+            updateDocumentsList(allDocuments);
+        });
+        
+        searchBtn.addEventListener('click', () => {
+            updateDocumentsList(allDocuments);
+        });
+        
+        filterDate.addEventListener('change', () => {
+            updateDocumentsList(allDocuments);
+        });
+        
+        sortBy.addEventListener('change', () => {
+            updateDocumentsList(allDocuments);
+        });
         
         // Utility functions
-        function resetCameraUI() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                currentStream = null;
-            }
-            
-            video.style.display = 'none';
-            captureBtn.style.display = 'none';
-            preview.style.display = 'none';
-            createPdfBtn.style.display = 'none';
-            captureAgain.style.display = 'none';
-            cameraBtn.style.display = 'block';
-        }
-        
-        function showToast(message, type) {
+        function showToast(message, type = 'info') {
             toast.textContent = message;
-            toast.className = 'toast show ' + type;
+            toast.className = 'toast';
+            toast.classList.add(type);
+            toast.classList.add('show');
             
             setTimeout(() => {
-                toast.className = toast.className.replace('show', '');
+                toast.classList.remove('show');
             }, 3000);
         }
-        
-        // Close modal when clicking outside
-        window.addEventListener('click', function(event) {
-            if (event.target === deleteModal) {
-                deleteModal.style.display = 'none';
-            }
-        });
     </script>
 </body>
 </html>
