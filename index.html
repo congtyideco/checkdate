@@ -335,7 +335,7 @@
                 <div id="camera-btn">📷</div>
                 <video id="video" autoplay playsinline></video>
                 <button id="capture-btn" class="btn" style="display: none;">Chụp Ảnh</button>
-                
+                <button id="switch-camera-btn" class="btn btn-warning" style="display: none;">Xoay camera</button>
                 <img id="preview" />
                 
                 <button id="capture-again" class="btn btn-warning" style="display: none;">Chụp Lại</button>
@@ -725,6 +725,91 @@
                 toast.className = 'toast';
             }, 3000);
         }
+		// Thêm DOM element cho nút mới
+const switchCameraBtn = document.getElementById('switch-camera-btn');
+let currentFacingMode = 'environment'; // Mặc định là camera sau
+let currentStream = null;
+let capturedImage = null;
+
+// Thêm sự kiện click cho nút "Xoay camera"
+switchCameraBtn.addEventListener('click', () => {
+    // Chuyển đổi giữa 'user' (trước) và 'environment' (sau)
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    startCamera();
+});
+
+// Cập nhật sự kiện click cho nút khởi động camera
+cameraBtn.addEventListener('click', () => {
+    // Khởi động camera sau mặc định
+    startCamera();
+});
+
+// Cập nhật hàm startCamera
+async function startCamera() {
+    try {
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+        }
+        showToast('Đang khởi động camera...', 'info');
+
+        // Sử dụng facingMode để chọn camera
+        const constraints = {
+            video: {
+                facingMode: {
+                    exact: currentFacingMode
+                }
+            }
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        currentStream = stream;
+        video.srcObject = stream;
+        video.style.display = 'block';
+        captureBtn.style.display = 'inline-block';
+        createPdfBtn.style.display = 'none';
+        captureAgain.style.display = 'none';
+        cameraBtn.style.display = 'none';
+        // Hiển thị nút xoay camera sau khi camera khởi động thành công
+        switchCameraBtn.style.display = 'inline-block';
+        showToast('Camera đã sẵn sàng.', 'success');
+    } catch (err) {
+        console.error('Lỗi khi truy cập camera:', err);
+        showToast('Không thể truy cập camera.', 'error');
+        resetCameraUI();
+    }
+}
+
+// Cập nhật hàm resetCameraUI để ẩn nút xoay camera
+function resetCameraUI() {
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+    }
+    video.style.display = 'none';
+    captureBtn.style.display = 'none';
+    preview.style.display = 'none';
+    createPdfBtn.style.display = 'none';
+    captureAgain.style.display = 'none';
+    cameraBtn.style.display = 'block';
+    switchCameraBtn.style.display = 'none'; // Thêm dòng này để ẩn nút
+    productName.value = '';
+    lotNumber.value = '';
+    expiryDate.valueAsDate = new Date();
+    quantity.value = '';
+    storageLocation.value = '';
+}
+
+// Thêm dòng này để cập nhật nút xoay khi chụp ảnh xong
+captureBtn.addEventListener('click', () => {
+    // ... (Giữ nguyên các đoạn code chụp ảnh hiện có)
+    switchCameraBtn.style.display = 'none'; // Ẩn nút xoay khi đã chụp ảnh
+});
+
+// Thêm dòng này để cập nhật nút xoay khi muốn chụp lại
+captureAgain.addEventListener('click', () => {
+    // ... (Giữ nguyên các đoạn code hiện có)
+    switchCameraBtn.style.display = 'inline-block'; // Hiển thị lại nút xoay
+});
     </script>
 </body>
 </html>
