@@ -506,7 +506,6 @@
                 </div>
                 <input type="text" id="lot-number" placeholder="Nhập số lô">
                 <input type="date" id="expiry-date" required>
-                <!-- Thêm trường ngày chụp ảnh -->
                 <input type="date" id="capture-date" placeholder="Ngày chụp ảnh">
                 <input type="number" id="quantity" placeholder="Nhập số lượng" min="1" required>
                 <input type="text" id="storage-location" placeholder="Nhập vị trí lưu trữ">
@@ -541,6 +540,8 @@
                         <option value="expiry">Hạn dùng</option>
                     </select>
                 </div>
+                
+                <button id="export-excel-btn" class="btn btn-success" style="width: 100%; margin: 0 0 15px 0;">Xuất Excel</button>
                 
                 <div class="documents-list" id="documents-list">
                     <div class="empty-list">Chưa có sản phẩm nào. Hãy thêm sản phẩm đầu tiên!</div>
@@ -600,6 +601,7 @@
         const searchBtn = document.getElementById('search-btn');
         const filterDate = document.getElementById('filter-date');
         const sortBy = document.getElementById('sort-by');
+        const exportExcelBtn = document.getElementById('export-excel-btn'); // Thêm nút export
         
         let currentStream = null;
         let capturedImage = null;
@@ -1246,8 +1248,7 @@
                         <div class="document-date">
                             Số lô: ${doc.lotNumber || 'N/A'} | 
                             Hạn dùng: ${formattedExpiry} |
-                            Ngày chụp: ${formatDate(doc.captureDate) || 'N/A'} | <!-- Hiển thị ngày chụp ảnh -->
-                            SL: ${doc.quantity || 'N/A'} | 
+                            Ngày chụp: ${formatDate(doc.captureDate) || 'N/A'} | SL: ${doc.quantity || 'N/A'} | 
                             Vị trí: ${doc.storageLocation || 'N/A'}
                         </div>
                     </div>
@@ -1285,8 +1286,7 @@
                         <div class="info">
                             <div class="info-item"><span class="label">Số lô:</span> ${doc.lotNumber || 'N/A'}</div>
                             <div class="info-item"><span class="label">Hạn dùng:</span> ${formatDate(doc.expiryDate)}</div>
-                            <div class="info-item"><span class="label">Ngày chụp ảnh:</span> ${formatDate(doc.captureDate) || 'N/A'}</div> <!-- Hiển thị ngày chụp ảnh -->
-                            <div class="info-item"><span class="label">Số lượng:</span> ${doc.quantity || 'N/A'}</div>
+                            <div class="info-item"><span class="label">Ngày chụp ảnh:</span> ${formatDate(doc.captureDate) || 'N/A'}</div> <div class="info-item"><span class="label">Số lượng:</span> ${doc.quantity || 'N/A'}</div>
                             <div class="info-item"><span class="label">Vị trí lưu trữ:</span> ${doc.storageLocation || 'N/A'}</div>
                             <div class="info-item"><span class="label">Ngày tạo:</span> ${new Date(doc.createdAt).toLocaleDateString('vi-VN')}</div>
                         </div>
@@ -1326,6 +1326,48 @@
         sortBy.addEventListener('change', () => {
             updateDocumentsList(allDocuments);
         });
+        
+        // ==========================================================
+        // MÃ MỚI: CHỨC NĂNG XUẤT EXCEL
+        // ==========================================================
+        function exportToExcel() {
+            if (allDocuments.length === 0) {
+                showToast('Không có dữ liệu để xuất.', 'warning');
+                return;
+            }
+
+            showToast('Đang chuẩn bị file Excel...', 'info');
+
+            // 1. Định dạng lại dữ liệu với tiêu đề cột mong muốn
+            const formattedData = allDocuments.map(doc => ({
+                'Tên sản phẩm': doc.productName || 'N/A',
+                'Số lô': doc.lotNumber || 'N/A',
+                'Hạn dùng': formatDate(doc.expiryDate),
+                'Ngày chụp ảnh': formatDate(doc.captureDate),
+                'Số lượng': doc.quantity || 'N/A',
+                'Vị trí lưu trữ': doc.storageLocation || 'N/A'
+            }));
+
+            // 2. Tạo worksheet từ dữ liệu đã định dạng
+            const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+            // 3. Tạo workbook mới và thêm worksheet vào
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách sản phẩm');
+
+            // 4. Tạo tên file theo định dạng baocaodulieusanpham-DDMMYYYY
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Tháng trong JS bắt đầu từ 0
+            const year = today.getFullYear();
+            const fileName = `baocaodulieusanpham-${day}${month}${year}.xlsx`;
+
+            // 5. Xuất file và cho phép người dùng tải về
+            XLSX.writeFile(workbook, fileName);
+        }
+
+        // Gắn sự kiện click cho nút xuất Excel
+        exportExcelBtn.addEventListener('click', exportToExcel);
         
         // Utility functions
         function formatDate(dateString) {
