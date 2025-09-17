@@ -506,6 +506,8 @@
                 </div>
                 <input type="text" id="lot-number" placeholder="Nhập số lô">
                 <input type="date" id="expiry-date" required>
+                <!-- Thêm trường ngày chụp ảnh -->
+                <input type="date" id="capture-date" placeholder="Ngày chụp ảnh">
                 <input type="number" id="quantity" placeholder="Nhập số lượng" min="1" required>
                 <input type="text" id="storage-location" placeholder="Nhập vị trí lưu trữ">
                 
@@ -589,6 +591,7 @@
         const productName = document.getElementById('product-name');
         const lotNumber = document.getElementById('lot-number');
         const expiryDate = document.getElementById('expiry-date');
+        const captureDate = document.getElementById('capture-date'); // Thêm biến cho ngày chụp ảnh
         const quantity = document.getElementById('quantity');
         const storageLocation = document.getElementById('storage-location');
 
@@ -627,6 +630,7 @@
         
         // Set current date as default
         expiryDate.valueAsDate = new Date();
+        captureDate.valueAsDate = new Date(); // Đặt ngày chụp mặc định là hôm nay
         filterDate.valueAsDate = new Date();
         
         // Initialize - load saved data from Firebase
@@ -1076,70 +1080,77 @@
             capturedImage = null;
         });
         
-        createPdfBtn.addEventListener('click', () => {
+        createPdfBtn.addEventListener('click', async () => {
             if (!capturedImage) {
                 showToast('Vui lòng chụp ảnh trước!', 'error');
                 return;
             }
             
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            // Add image
-            doc.addImage(capturedImage, 'PNG', 15, 15, 180, 120);
-            
-            // Add text information
-            doc.setFontSize(16);
-            doc.text('THÔNG TIN SẢN PHẨM', 105, 145, { align: 'center' });
-            
-            doc.setFontSize(12);
-            doc.text(`Tên sản phẩm: ${productName.value}`, 20, 155);
-            doc.text(`Số lô: ${lotNumber.value || 'kiểm tra kỹ '}`, 20, 165);
-            doc.text(`Ngày chụp: ${new Date(expiryDate.value).toLocaleDateString('vi-VN')}`, 20, 175);
-            doc.text(`Số lượng: ${quantity.value || 1}`, 20, 185);
-            doc.text(`Vị trí lưu trữ: ${storageLocation.value || 'N/A'}`, 20, 195);
-            
-            // Add timestamp
-            const now = new Date();
-            doc.setFontSize(10);
-            doc.text(`Tạo ngày: ${now.toLocaleString('vi-VN')}`, 105, 205, { align: 'center' });
-            
-            // Save to Firebase
-            const documentData = {
-                productName: productName.value,
-                lotNumber: lotNumber.value,
-                expiryDate: expiryDate.value,
-                quantity: quantity.value,
-                storageLocation: storageLocation.value,
-                image: capturedImage,
-                createdAt: now.toISOString()
-            };
-            
-            documentsRef.push(documentData)
-                .then(() => {
-                    showToast('Đã lưu thông tin thành công!', 'success');
-                    
-                    // Reset form
-                    productName.value = '';
-                    lotNumber.value = '';
-                    expiryDate.valueAsDate = new Date();
-                    quantity.value = '';
-                    storageLocation.value = '';
-                    
-                    preview.style.display = 'none';
-                    createPdfBtn.style.display = 'none';
-                    captureAgain.style.display = 'none';
-                    cameraBtn.style.display = 'block';
-                    
-                    capturedImage = null;
-                })
-                .catch(error => {
-                    showToast('Lỗi khi lưu dữ liệu: ' + error.message, 'error');
-                    console.error('Save error:', error);
-                });
+            try {
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add image to PDF
+                doc.addImage(capturedImage, 'PNG', 15, 40, 180, 120);
+                
+                // Add product information
+                doc.setFontSize(20);
+                doc.text('THÔNG TIN SẢN PHẨM', 105, 15, { align: 'center' });
+                
+                doc.setFontSize(12);
+                doc.text(`Tên sản phẩm: ${productName.value}`, 15, 175);
+                doc.text(`Số lô: ${lotNumber.value}`, 15, 185);
+                doc.text(`Hạn dùng: ${formatDate(expiryDate.value)}`, 15, 195);
+                doc.text(`Ngày chụp ảnh: ${formatDate(captureDate.value)}`, 15, 205); // Thêm ngày chụp ảnh
+                doc.text(`Số lượng: ${quantity.value}`, 15, 215);
+                doc.text(`Vị trí lưu trữ: ${storageLocation.value}`, 15, 225);
+                
+                // Generate PDF as blob
+                const pdfBlob = doc.output('blob');
+                
+                // Save to Firebase
+                const documentData = {
+                    productName: productName.value,
+                    lotNumber: lotNumber.value,
+                    expiryDate: expiryDate.value,
+                    captureDate: captureDate.value, // Lưu ngày chụp ảnh
+                    quantity: quantity.value,
+                    storageLocation: storageLocation.value,
+                    imageData: capturedImage,
+                    createdAt: new Date().toISOString()
+                };
+                
+                documentsRef.push(documentData)
+                    .then(() => {
+                        showToast('Đã lưu thông tin thành công!', 'success');
+                        
+                        // Reset form
+                        productName.value = '';
+                        lotNumber.value = '';
+                        expiryDate.valueAsDate = new Date();
+                        captureDate.valueAsDate = new Date(); // Reset về ngày hiện tại
+                        quantity.value = '';
+                        storageLocation.value = '';
+                        
+                        // Reset camera
+                        preview.style.display = 'none';
+                        createPdfBtn.style.display = 'none';
+                        captureAgain.style.display = 'none';
+                        cameraBtn.style.display = 'block';
+                        capturedImage = null;
+                    })
+                    .catch(error => {
+                        showToast('Lỗi khi lưu dữ liệu: ' + error.message, 'error');
+                        console.error('Save error:', error);
+                    });
+                
+            } catch (error) {
+                showToast('Lỗi khi tạo PDF: ' + error.message, 'error');
+                console.error('PDF creation error:', error);
+            }
         });
         
-        // Load documents from Firebase
         function loadDocuments() {
             documentsRef.on('value', (snapshot) => {
                 try {
@@ -1156,10 +1167,9 @@
                     }
                     
                     updateDocumentsList(allDocuments);
-                    loadProductNamesFromDocuments();
                 } catch (error) {
-                    console.error('Lỗi khi tải danh sách sản phẩm:', error);
-                    showToast('Lỗi khi tải danh sách sản phẩm', 'error');
+                    console.error('Lỗi khi tải danh sách tài liệu:', error);
+                    showToast('Lỗi khi tải danh sách tài liệu', 'error');
                 }
             });
         }
@@ -1170,24 +1180,24 @@
                 return;
             }
             
-            // Filter and sort
+            // Apply filters and sorting
             let filteredDocs = [...documents];
             
-            // Search filter
+            // Filter by search
             if (searchInput.value) {
                 const searchTerm = searchInput.value.toLowerCase();
                 filteredDocs = filteredDocs.filter(doc => 
-                    doc.productName?.toLowerCase().includes(searchTerm) ||
-                    doc.lotNumber?.toLowerCase().includes(searchTerm) ||
-                    doc.storageLocation?.toLowerCase().includes(searchTerm)
+                    (doc.productName && doc.productName.toLowerCase().includes(searchTerm)) ||
+                    (doc.lotNumber && doc.lotNumber.toLowerCase().includes(searchTerm)) ||
+                    (doc.storageLocation && doc.storageLocation.toLowerCase().includes(searchTerm))
                 );
             }
             
-            // Date filter
+            // Filter by date
             if (filterDate.value) {
                 const filterDateValue = new Date(filterDate.value);
                 filteredDocs = filteredDocs.filter(doc => {
-                    const docDate = new Date(doc.expiryDate);
+                    const docDate = new Date(doc.createdAt);
                     return docDate.toDateString() === filterDateValue.toDateString();
                 });
             }
@@ -1207,32 +1217,37 @@
                     filteredDocs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             }
             
-            // Update UI
+            // Update the list
             documentsList.innerHTML = '';
             
             filteredDocs.forEach(doc => {
                 const docElement = document.createElement('div');
                 docElement.className = 'document-item';
                 
+                // Check if expired or about to expire
                 const expiryDate = new Date(doc.expiryDate);
-                const createdDate = new Date(doc.createdAt);
                 const today = new Date();
-                const daysUntilExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+                const diffTime = expiryDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
-                // Add warning/expired classes
-                if (daysUntilExpiry < 0) {
+                if (diffDays < 0) {
                     docElement.classList.add('expired');
-                } else if (daysUntilExpiry < 30) {
+                } else if (diffDays < 30) {
                     docElement.classList.add('warning');
                 }
+                
+                const createdDate = new Date(doc.createdAt);
+                const formattedDate = createdDate.toLocaleDateString('vi-VN');
+                const formattedExpiry = expiryDate.toLocaleDateString('vi-VN');
                 
                 docElement.innerHTML = `
                     <div class="document-info">
                         <div class="document-title">${doc.productName || 'Không có tên'}</div>
                         <div class="document-date">
                             Số lô: ${doc.lotNumber || 'N/A'} | 
-                            Hạn dùng: ${expiryDate.toLocaleDateString('vi-VN')} | 
-                            SL: ${doc.quantity || 1} | 
+                            Hạn dùng: ${formattedExpiry} |
+                            Ngày chụp: ${formatDate(doc.captureDate) || 'N/A'} | <!-- Hiển thị ngày chụp ảnh -->
+                            SL: ${doc.quantity || 'N/A'} | 
                             Vị trí: ${doc.storageLocation || 'N/A'}
                         </div>
                     </div>
@@ -1246,41 +1261,43 @@
             });
         }
         
-        function viewDocument(id) {
-            const doc = allDocuments.find(d => d.id === id);
+        function viewDocument(docId) {
+            const doc = allDocuments.find(d => d.id === docId);
             if (!doc) return;
             
             const newWindow = window.open();
             newWindow.document.write(`
                 <html>
                     <head>
-                        <title>Chi tiết sản phẩm: ${doc.productName}</title>
+                        <title>Xem chi tiết: ${doc.productName}</title>
                         <style>
-                            body { font-family: Arial, sans-serif; padding: 20px; }
-                            .product-info { margin-bottom: 20px; }
-                            .product-info div { margin-bottom: 8px; }
-                            .product-image { max-width: 100%; height: auto; margin-top: 20px; }
+                            body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+                            img { max-width: 100%; max-height: 400px; border: 1px solid #ddd; border-radius: 8px; }
+                            .info { margin-top: 20px; text-align: left; max-width: 600px; margin: 20px auto; }
+                            .info-item { margin-bottom: 10px; }
+                            .label { font-weight: bold; }
                         </style>
                     </head>
                     <body>
-                        <h2>Thông tin sản phẩm</h2>
-                        <div class="product-info">
-                            <div><strong>Tên sản phẩm:</strong> ${doc.productName || 'N/A'}</div>
-                            <div><strong>Số lô:</strong> ${doc.lotNumber || 'N/A'}</div>
-                            <div><strong>Ngày chụp:</strong> ${new Date(doc.expiryDate).toLocaleDateString('vi-VN')}</div>
-                            <div><strong>Số lượng:</strong> ${doc.quantity || 1}</div>
-                            <div><strong>Vị trí lưu trữ:</strong> ${doc.storageLocation || 'N/A'}</div>
-                            <div><strong>Ngày tạo:</strong> ${new Date(doc.createdAt).toLocaleString('vi-VN')}</div>
+                        <h2>${doc.productName}</h2>
+                        <img src="${doc.imageData}" alt="Ảnh sản phẩm">
+                        
+                        <div class="info">
+                            <div class="info-item"><span class="label">Số lô:</span> ${doc.lotNumber || 'N/A'}</div>
+                            <div class="info-item"><span class="label">Hạn dùng:</span> ${formatDate(doc.expiryDate)}</div>
+                            <div class="info-item"><span class="label">Ngày chụp ảnh:</span> ${formatDate(doc.captureDate) || 'N/A'}</div> <!-- Hiển thị ngày chụp ảnh -->
+                            <div class="info-item"><span class="label">Số lượng:</span> ${doc.quantity || 'N/A'}</div>
+                            <div class="info-item"><span class="label">Vị trí lưu trữ:</span> ${doc.storageLocation || 'N/A'}</div>
+                            <div class="info-item"><span class="label">Ngày tạo:</span> ${new Date(doc.createdAt).toLocaleDateString('vi-VN')}</div>
                         </div>
-                        <img src="${doc.image}" class="product-image" alt="Ảnh sản phẩm">
                     </body>
                 </html>
             `);
         }
         
-        function deleteDocument(id) {
+        function deleteDocument(docId) {
             if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
-                documentsRef.child(id).remove()
+                documentsRef.child(docId).remove()
                     .then(() => {
                         showToast('Đã xóa sản phẩm thành công!', 'success');
                     })
@@ -1292,12 +1309,14 @@
         }
         
         // Search and filter functionality
-        searchInput.addEventListener('keyup', () => {
+        searchBtn.addEventListener('click', () => {
             updateDocumentsList(allDocuments);
         });
         
-        searchBtn.addEventListener('click', () => {
-            updateDocumentsList(allDocuments);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                updateDocumentsList(allDocuments);
+            }
         });
         
         filterDate.addEventListener('change', () => {
@@ -1309,6 +1328,13 @@
         });
         
         // Utility functions
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            
+            const date = new Date(dateString);
+            return date.toLocaleDateString('vi-VN');
+        }
+        
         function showToast(message, type = 'info') {
             toast.textContent = message;
             toast.className = 'toast';
@@ -1319,6 +1345,12 @@
                 toast.classList.remove('show');
             }, 3000);
         }
+        
+        // Global functions for onclick handlers
+        window.viewExcelData = viewExcelData;
+        window.requestDeleteFile = requestDeleteFile;
+        window.viewDocument = viewDocument;
+        window.deleteDocument = deleteDocument;
     </script>
 </body>
 </html>
