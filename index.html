@@ -642,30 +642,41 @@ addCapturedByBtn.addEventListener('click', () => {
             capturedImage = null;
         });
         
-        createPdfBtn.addEventListener('click', async () => {
-            if (!capturedImage) { showToast('Vui lòng chụp ảnh trước!', 'error'); return; }
-            const documentData = {
-                productName: productNameInput.value,
-                lotNumber: lotNumber.value,
-                expiryDate: expiryDate.value,
-                captureDate: captureDate.value,
-                quantity: quantity.value,
-                storageLocation: storageLocation.value,
-                capturedBy: capturedByInput.value,
-                imageData: capturedImage,
-                createdAt: new Date().toISOString()
-            };
-            documentsRef.push(documentData).then(() => {
-                showToast('Đã lưu thông tin thành công!', 'success');
-                productNameInput.value = ''; lotNumber.value = '';
-                expiryDate.valueAsDate = new Date(); captureDate.valueAsDate = new Date();
-                quantity.value = ''; storageLocation.value = '';
-                capturedByInput.value = '';
-                preview.style.display = 'none'; createPdfBtn.style.display = 'none';
-                captureAgain.style.display = 'none'; cameraBtn.style.display = 'block';
-                capturedImage = null;
-            }).catch(error => { showToast('Lỗi khi lưu dữ liệu: ' + error.message, 'error'); });
-        });
+       // THAY THẾ HÀM CŨ BẰNG HÀM NÀY
+createPdfBtn.addEventListener('click', async () => {
+    if (!capturedImage) { showToast('Vui lòng chụp ảnh trước!', 'error'); return; }
+
+    // DÒNG KIỂM TRA MỚI ĐƯỢC THÊM VÀO
+    if (!capturedByInput.value.trim()) {
+        showToast('Vui lòng nhập tên người chụp!', 'error');
+        return; // Dừng lại nếu chưa nhập tên
+    }
+
+    try {
+        const documentData = {
+            productName: productNameInput.value,
+            lotNumber: lotNumber.value,
+            expiryDate: expiryDate.value,
+            captureDate: captureDate.value,
+            quantity: quantity.value,
+            storageLocation: storageLocation.value,
+            capturedBy: capturedByInput.value,
+            imageData: capturedImage,
+            createdAt: new Date().toISOString()
+        };
+        
+        documentsRef.push(documentData).then(() => {
+            showToast('Đã lưu thông tin thành công!', 'success');
+            productNameInput.value = ''; lotNumber.value = '';
+            expiryDate.valueAsDate = new Date(); captureDate.valueAsDate = new Date();
+            quantity.value = ''; storageLocation.value = '';
+            capturedByInput.value = '';
+            preview.style.display = 'none'; createPdfBtn.style.display = 'none';
+            captureAgain.style.display = 'none'; cameraBtn.style.display = 'block';
+            capturedImage = null;
+        }).catch(error => { showToast('Lỗi khi lưu dữ liệu: ' + error.message, 'error'); });
+    } catch (error) { showToast('Lỗi khi tạo PDF: ' + error.message, 'error'); }
+});
         
         function loadDocuments() {
             documentsRef.on('value', (snapshot) => {
@@ -675,37 +686,53 @@ addCapturedByBtn.addEventListener('click', () => {
                 loadProductNamesFromDocuments();
             });
         }
-        
-        function updateDocumentsList(documents) {
-            if (documents.length === 0) { documentsList.innerHTML = '<div class="empty-list">Chưa có sản phẩm nào. Hãy thêm sản phẩm đầu tiên!</div>'; return; }
-            let filteredDocs = [...documents];
-            const searchTerm = searchInput.value.toLowerCase();
-            if (searchTerm) {
-                filteredDocs = filteredDocs.filter(doc => (doc.productName && doc.productName.toLowerCase().includes(searchTerm)) || (doc.lotNumber && doc.lotNumber.toLowerCase().includes(searchTerm)) || (doc.storageLocation && doc.storageLocation.toLowerCase().includes(searchTerm)));
-            }
-            if (filterDate.value) {
-                const filterDateValue = new Date(filterDate.value);
-                filteredDocs = filteredDocs.filter(doc => new Date(doc.createdAt).toDateString() === filterDateValue.toDateString());
-            }
-            switch (sortBy.value) {
-                case 'oldest': filteredDocs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); break;
-                case 'name': filteredDocs.sort((a, b) => (a.productName || '').localeCompare(b.productName || '')); break;
-                case 'expiry': filteredDocs.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)); break;
-                default: filteredDocs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            }
-            documentsList.innerHTML = '';
-            filteredDocs.forEach(doc => {
-                const docElement = document.createElement('div');
-                docElement.className = 'document-item'; docElement.id = `doc-${doc.id}`;
-                const expiry = new Date(doc.expiryDate);
-                const today = new Date();
-                const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-                if (diffDays < 0) docElement.classList.add('expired');
-                else if (diffDays < 30) docElement.classList.add('warning');
-                docElement.innerHTML = `<div class="document-info"><div class="document-title">${doc.productName || 'Không có tên'}</div><div class="document-date"><span>Số lô: ${doc.lotNumber || 'N/A'}</span> | <span>Hạn dùng: ${formatDate(doc.expiryDate)}</span> | <span>Ngày chụp: ${formatDate(doc.captureDate) || 'N/A'}</span> | <span>SL: ${doc.quantity || 'N/A'}</span> | <span>Vị trí: ${doc.storageLocation || 'N/A'}</span></div></div><div class="document-actions"><button class="btn" onclick="viewDocument('${doc.id}')">Xem</button><button class="btn btn-warning" onclick="enableEditMode('${doc.id}')" id="edit-btn-${doc.id}">Sửa</button><button class="btn btn-danger" onclick="deleteDocument('${doc.id}')">Xóa</button></div>`;
-                documentsList.appendChild(docElement);
-            });
-        }
+      // THAY THẾ HÀM CŨ BẰNG HÀM NÀY
+function updateDocumentsList(documents) {
+    if (documents.length === 0) { documentsList.innerHTML = '<div class="empty-list">Chưa có sản phẩm nào. Hãy thêm sản phẩm đầu tiên!</div>'; return; }
+    let filteredDocs = [...documents];
+    const searchTerm = searchInput.value.toLowerCase();
+    if (searchTerm) {
+        filteredDocs = filteredDocs.filter(doc => (doc.productName && doc.productName.toLowerCase().includes(searchTerm)) || (doc.lotNumber && doc.lotNumber.toLowerCase().includes(searchTerm)) || (doc.storageLocation && doc.storageLocation.toLowerCase().includes(searchTerm)));
+    }
+    if (filterDate.value) {
+        const filterDateValue = new Date(filterDate.value);
+        filteredDocs = filteredDocs.filter(doc => new Date(doc.createdAt).toDateString() === filterDateValue.toDateString());
+    }
+    switch (sortBy.value) {
+        case 'oldest': filteredDocs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); break;
+        case 'name': filteredDocs.sort((a, b) => (a.productName || '').localeCompare(b.productName || '')); break;
+        case 'expiry': filteredDocs.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)); break;
+        default: filteredDocs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+    documentsList.innerHTML = '';
+    filteredDocs.forEach(doc => {
+        const docElement = document.createElement('div');
+        docElement.className = 'document-item'; docElement.id = `doc-${doc.id}`;
+        const expiry = new Date(doc.expiryDate);
+        const today = new Date();
+        const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) docElement.classList.add('expired');
+        else if (diffDays < 30) docElement.classList.add('warning');
+
+        // DÒNG CODE DƯỚI ĐÂY ĐÃ ĐƯỢC CẬP NHẬT
+        docElement.innerHTML = `
+            <div class="document-info">
+                <div class="document-title">${doc.productName || 'Không có tên'}</div>
+                <div class="document-date">
+                    <span>Số lô: ${doc.lotNumber || 'N/A'}</span> | 
+                    <span>Hạn dùng: ${formatDate(doc.expiryDate)}</span> | 
+                    <span>SL: ${doc.quantity || 'N/A'}</span> | 
+                    <b><span>Người chụp: ${doc.capturedBy || 'N/A'}</span></b>
+                </div>
+            </div>
+            <div class="document-actions">
+                <button class="btn" onclick="viewDocument('${doc.id}')">Xem</button>
+                <button class="btn btn-warning" onclick="enableEditMode('${doc.id}')" id="edit-btn-${doc.id}">Sửa</button>
+                <button class="btn btn-danger" onclick="deleteDocument('${doc.id}')">Xóa</button>
+            </div>`;
+        documentsList.appendChild(docElement);
+    });
+}
         
         function viewDocument(docId) {
             const doc = allDocuments.find(d => d.id === docId);
